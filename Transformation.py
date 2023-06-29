@@ -20,7 +20,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Get options
-    options = options(args.image)
+    options = options(args.image, debug=None)
 
     # Set debug to the global parameter
     pcv.params.debug = options.debug
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # Take a binary threshold to separate plant from background.
     s_thresh = pcv.threshold.binary(
-        gray_img=s, threshold=85, max_value=255, object_type="light"
+        gray_img=s, threshold=70, max_value=255, object_type="light"
     )
 
     # Median Blur
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     # Threshold the blue channel
     b_thresh = pcv.threshold.binary(
-        gray_img=b, threshold=160, max_value=255, object_type="light"
+        gray_img=b, threshold=200, max_value=255, object_type="light"
     )
 
     # join the threshold saturation and blue-yellow images
@@ -81,20 +81,24 @@ if __name__ == "__main__":
     xor_img = pcv.logical_xor(bin_img1=maskeda_thresh, bin_img2=maskedb_thresh)
 
     # Fill small objects
-    ab_fill = pcv.fill(bin_img=xor_img, size=200)
+    ab_fill = pcv.fill(bin_img=xor_img, size=250)
 
     # closing filters out dark noise from an image.
 
-    closed_ab = pcv.closing(gray_img=ab_fill)
+    # closed_ab = pcv.closing(gray_img=ab_fill)
 
     # Apply mask (for vis images, mask_color=white)
-    masked2 = pcv.apply_mask(img=masked, mask=closed_ab, mask_color="white")
+    # masked2 = pcv.apply_mask(img=masked, mask=closed_ab, mask_color="white")
 
     # Identify objects
-    id_objects, obj_hierarchy = pcv.find_objects(img=masked2, mask=ab_fill)
+
+    pcv.plot_image(s_gblur)
+
+    pcv.params.debug = "plot"
+    id_objects, obj_hierarchy = pcv.find_objects(img=img, mask=ab)
 
     # Define ROI
-    roi1, roi_hierarchy = pcv.roi.rectangle(img=masked2, x=0, y=0, h=250, w=250)
+    roi1, roi_hierarchy = pcv.roi.rectangle(img=img, x=0, y=0, h=250, w=250)
 
     # Decide which objects to keep
     roi_objects, hierarchy3, kept_mask, obj_area = pcv.roi_objects(
@@ -114,3 +118,15 @@ if __name__ == "__main__":
     ### Analysis ###
     # Find shape properties, output shape image (optional)
     analysis_image = pcv.analyze_object(img=img, obj=obj, mask=mask, label="default")
+
+    # Color histogram
+    color_histogram = pcv.analyze_color(
+        rgb_img=img, mask=kept_mask, colorspaces="all", label="default"
+    )
+
+    # Pseudolandmarks
+    top_x, bottom_x, center_v_x = pcv.x_axis_pseudolandmarks(
+        img=img, obj=obj, mask=mask, label="default"
+    )
+
+    exit()
