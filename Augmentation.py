@@ -5,6 +5,8 @@ import imutils
 import cv2
 import matplotlib.pyplot as plt
 
+from copy import deepcopy
+from Distribution import load_images_from_directory
 
 SAVING_PATH = ''
 
@@ -16,35 +18,38 @@ class ImageAugmentation:
         return image
 
     @staticmethod
-    def rotate(image, angle=45):
+    def rotate(image, angle=45, save_image=True):
         """
         Rotate image counter clock-wise to 'angle' value
         """
         image = imutils.rotate(image, angle)
-        ImageAugmentation.save_image(image, 'rotate')
+        if save_image:
+            ImageAugmentation.save_image(image, 'rotate')
         return image
 
     @staticmethod
-    def gaussian_blur(image, blur_value=(15, 15)):
+    def gaussian_blur(image, blur_value=(15, 15), save_image=True):
         """
         Simple image blur that aims to reduce noise in the picture
         """
         image = cv2.GaussianBlur(image, blur_value, 0)
-        ImageAugmentation.save_image(image, 'gaussian_blur')
+        if save_image:
+            ImageAugmentation.save_image(image, 'gaussian_blur')
         return image
 
     @staticmethod
-    def contrast(image, alpha=1.5, beta=2):
+    def contrast(image, alpha=1.5, beta=2, save_image=True):
         """
         Changing brightness and contrast values to help the
         model in dealing with luminosity variations.
         """
         image = cv2.convertScaleAbs(image, alpha, beta)
-        ImageAugmentation.save_image(image, 'contrast')
+        if save_image:
+            ImageAugmentation.save_image(image, 'contrast')
         return image
 
     @staticmethod
-    def reflection(image):
+    def reflection(image, save_image=True):
         """
         Flipping image upside down, as if the leaf was looking
         at it's reflection from the water of a lake for example
@@ -54,11 +59,12 @@ class ImageAugmentation:
                              [0, -1, rows],
                              [0, 0, 1]])
         image = cv2.warpPerspective(image, matrix, (cols, rows))
-        ImageAugmentation.save_image(image, 'reflection')
+        if save_image:
+            ImageAugmentation.save_image(image, 'reflection')
         return image
 
     @staticmethod
-    def scaling(image, scale_factor=.75):
+    def scaling(image, scale_factor=.75, save_image=True):
         """
         Cropping outside pixels, very useful in our case
         because most of the images will have the leaf in the
@@ -73,29 +79,44 @@ class ImageAugmentation:
         # Defining starting and ending points from before and after the center
         # for each axis, start_point -> center_axis <- end_point
         # the goal is to only remove the outside pixels
-        width_points = [center_x - int(center_x * scale_factor), center_x + int(center_x * scale_factor)]
-        height_points = [center_y - int(center_y * scale_factor), center_y + int(center_y * scale_factor)]
+        width_points = [center_x - int(center_x * scale_factor),
+                        center_x + int(center_x * scale_factor)]
+        height_points = [center_y - int(center_y * scale_factor),
+                         center_y + int(center_y * scale_factor)]
 
         # Applying the crop
-        image = image[width_points[0]:width_points[1], height_points[0]: height_points[1]]
-        # Resizing the image back to it's original dimensions with cropping applied
-        image = cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
-        ImageAugmentation.save_image(image, "scaling")
+        image = image[width_points[0]:width_points[1],
+                      height_points[0]: height_points[1]]
+        # Resizing the image back to its original
+        # dimensions with cropping applied
+        image = cv2.resize(image, (width, height),
+                           interpolation=cv2.INTER_AREA)
+        if save_image:
+            ImageAugmentation.save_image(image, "scaling")
         return image
 
     @staticmethod
-    def save_image(image, method_name):
+    def save_image(image, method_name, custom_path=None, image_name=None):
         """
         After applying any augmentation method, save_image is called
         to save the augmented image as a copy of the original one
         """
-        save_path = SAVING_PATH.split('/')[:-1]
-        image_name = SAVING_PATH.split('/')[-1].split('.')[0]
-        final_path = '/'.join(save_path) + '/' + image_name + f'_{method_name}.JPG'
-        cv2.imwrite(final_path, image)
+        if custom_path:
+            custom_path += f"/{image_name.split('.')[0]}_{method_name}.JPG"
+            print(custom_path)
+            cv2.imwrite(custom_path, image)
+        else:
+            save_path = SAVING_PATH.split('/')[:-1]
+            image_name = SAVING_PATH.split('/')[-1].split('.')[0]
+            destination_folder = 'augmented_directory/' + \
+                                 '/'.join(save_path[1:])
+            if not os.path.isdir(destination_folder):
+                os.makedirs(destination_folder)
+            final_path = f"{destination_folder}/{image_name}_{method_name}.JPG"
+            cv2.imwrite(final_path, image)
 
     @staticmethod
-    def shear(image):
+    def shear(image, save_image=True):
         """
         Simulating a different angle of view, POV change so to say
         """
@@ -105,18 +126,25 @@ class ImageAugmentation:
                              [0, 0, 1]])
         image = cv2.warpPerspective(image, matrix, (int(cols * 1.5),
                                                     int(rows * 1.5)))
-        ImageAugmentation.save_image(image, "shear")
+        if save_image:
+            ImageAugmentation.save_image(image, "shear")
         return image
 
 
-def plot_all_pictures(image, image_path, image_augmentation):
-    methods = ['reflection', 'scaling', 'rotate', 'gaussian_blur', 'contrast', 'shear']
+def apply_augmentation_techniques(image, image_augmentation, save_image=True):
+    methods = ['reflection', 'scaling', 'rotate',
+               'gaussian_blur', 'contrast', 'shear']
     images = [image]
     for method in methods:
         function_call = getattr(image_augmentation, method)
-        images.append(function_call(image))
-
+        images.append(function_call(image, save_image=save_image))
     methods.insert(0, 'original')
+    return methods, images
+
+
+def plot_all_pictures(image, image_path, image_augmentation):
+    methods, images = apply_augmentation_techniques(image, image_augmentation)
+
     fig, axs = plt.subplots(1, len(methods), figsize=(12, 3))
     plt.axis('off')
     axs = axs.flatten()
@@ -127,22 +155,50 @@ def plot_all_pictures(image, image_path, image_augmentation):
     plt.show()
 
 
-def main_augmentation(image_path):
-    # MAKE AUGMENTED_DIRECTORY and save the pictures there
-    global SAVING_PATH
+def main_augmentation(path, mode):
+    path.replace('\\', '') if '\\' in path else path
     img_augmentation = ImageAugmentation()
-    image_path.replace('\\', '')
-    SAVING_PATH = image_path
-    image = img_augmentation.load_image(image_path)
+    if mode == 'image':
+        global SAVING_PATH
+        image = img_augmentation.load_image(path)
+        plot_all_pictures(image, path, img_augmentation)
+    else:
+        final_dirs = {}
+        for root, dirs, files in os.walk(path):
+            if not dirs:
+                final_dirs[root] = load_images_from_directory(root)
+        for directory, items in final_dirs.items():
+            print(f'Doing batch for directory {directory}')
+            new_d_name_augmented = '/'.join(directory.split('/')[1:])
+            try:
+                os.makedirs(os.path.join('augmented_directory',
+                                         new_d_name_augmented))
+            except FileExistsError:
+                pass
 
-    plot_all_pictures(image, image_path, img_augmentation)
+            for image in items:
+                image_name = deepcopy(image)
+                image = img_augmentation.load_image(os.path.join(directory,
+                                                                 image))
+                methods, images = apply_augmentation_techniques(
+                    image, img_augmentation, save_image=False)
+                for i, img in enumerate(images):
+                    img_augmentation.save_image(img, methods[i],
+                                                os.path.join(
+                                                    'augmented_directory',
+                                                    new_d_name_augmented),
+                                                image_name)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit('Missing image path')
-    path = sys.argv[1]
-    if not os.path.isfile(path) or \
-            not ''.join(path.split('/')[-1]).endswith('.JPG'):
-        sys.exit('File does not exists or has invalid extension')
-    main_augmentation(path)
+        raise Exception('Missing path argument')
+    default_path = sys.argv[1]
+    if not os.path.exists(default_path):
+        raise FileNotFoundError("Path doesn't exist")
+    if os.path.isfile(default_path):
+        if not ''.join(default_path.split('/')[-1]).endswith('.JPG'):
+            raise FileNotFoundError('Invalid file extension')
+        main_augmentation(default_path, 'image')
+    elif os.path.isdir(default_path):
+        main_augmentation(default_path, 'batch')
