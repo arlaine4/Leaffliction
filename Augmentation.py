@@ -18,6 +18,28 @@ class ImageAugmentation:
         return image
 
     @staticmethod
+    def save_image(image, method_name, custom_path=None, image_name=None):
+        """
+        After applying any augmentation method, save_image is called
+        to save the augmented image as a copy of the original one
+        """
+        # This block is used if a folder is provided as a path argument
+        if custom_path:
+            custom_path += f"/{image_name.split('.')[0]}_{method_name}.JPG"
+            cv2.imwrite(custom_path, image)
+        # This block is used if the path points to an image
+        else:
+            save_path = SAVING_PATH.split('/')[:-1]
+            image_name = SAVING_PATH.split('/')[-1].split('.')[0]
+            destination_folder = 'augmented_directory/' + \
+                                 '/'.join(save_path[1:])
+            if not os.path.isdir(destination_folder):
+                os.makedirs(destination_folder)
+            final_path = f"{destination_folder}/{image_name}_{method_name}.JPG"
+            if not os.path.exists(final_path):
+                cv2.imwrite(final_path, image)
+
+    @staticmethod
     def rotate(image, angle=45, save_image=True):
         """
         Rotate image counter clock-wise to 'angle' value
@@ -96,26 +118,6 @@ class ImageAugmentation:
         return image
 
     @staticmethod
-    def save_image(image, method_name, custom_path=None, image_name=None):
-        """
-        After applying any augmentation method, save_image is called
-        to save the augmented image as a copy of the original one
-        """
-        if custom_path:
-            custom_path += f"/{image_name.split('.')[0]}_{method_name}.JPG"
-            print(custom_path)
-            cv2.imwrite(custom_path, image)
-        else:
-            save_path = SAVING_PATH.split('/')[:-1]
-            image_name = SAVING_PATH.split('/')[-1].split('.')[0]
-            destination_folder = 'augmented_directory/' + \
-                                 '/'.join(save_path[1:])
-            if not os.path.isdir(destination_folder):
-                os.makedirs(destination_folder)
-            final_path = f"{destination_folder}/{image_name}_{method_name}.JPG"
-            cv2.imwrite(final_path, image)
-
-    @staticmethod
     def shear(image, save_image=True):
         """
         Simulating a different angle of view, POV change so to say
@@ -160,6 +162,7 @@ def main_augmentation(path, mode):
     img_augmentation = ImageAugmentation()
     if mode == 'image':
         global SAVING_PATH
+        SAVING_PATH = path
         image = img_augmentation.load_image(path)
         plot_all_pictures(image, path, img_augmentation)
     else:
@@ -168,7 +171,7 @@ def main_augmentation(path, mode):
             if not dirs:
                 final_dirs[root] = load_images_from_directory(root)
         for directory, items in final_dirs.items():
-            print(f'Doing batch for directory {directory}')
+            print(f'Doing batch for directory {directory}, found {len(items)} pictures')
             new_d_name_augmented = '/'.join(directory.split('/')[1:])
             try:
                 os.makedirs(os.path.join('augmented_directory',
