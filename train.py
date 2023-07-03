@@ -24,7 +24,29 @@ def fill_target_dict(dir_and_images):
 def prepare_dataset(dir_and_images):
     fill_target_dict(dir_and_images)
     train_df = pd.DataFrame(columns=['target', 'image_path', 'image_data'])
-    for key, val in dir_and_images.items():
+    for target, paths in dir_and_images.items():
+        print(f"Generate dataset for {target}")
+        key_target_name = target.split('/')[-1]
+        images_paths = []
+        images_data = []
+        for path in paths:
+            image_path = os.path.join(target, path)
+            images_paths.append(image_path)
+
+            image = cv2.imread(image_path, cv2.COLOR_RGB2BGR)
+            image = np.array(image)
+            image = image.astype('float32')
+            image /= 255
+            images_data.append(image)
+        df = pd.DataFrame({'target': [TARGETS_DICT[key_target_name] for i in range(len(images_paths))],
+                           'image_path': images_paths,
+                           'image_data': images_data})
+    train_df = pd.concat([train_df, df])
+    train_df.to_csv('test.csv')
+    return train_df
+            #image_path = os.path.join()
+            #image_path = os.path.join(path
+    """for key, val in dir_and_images.items():
         # Extracting target class from path
         key_target = key.split('/')[-1]
         images_paths = []
@@ -44,7 +66,7 @@ def prepare_dataset(dir_and_images):
         # Adding new target dataframe to train_df
         train_df = pd.concat([train_df, df])
     print(train_df.head(10))
-    return train_df
+    return train_df"""
 
 
 def generate_model():
@@ -74,11 +96,11 @@ def main_training(path):
         if not dirs:
             final_dirs[root] = load_images_from_directory(root)
     train_df = prepare_dataset(final_dirs)
-    train_df.to_csv('test.csv')
     model = generate_model()
     
-    X_train, X_test, y_train, y_test = train_test_split(np.array(train_df['image_data'], dtype=np.uint8),
-                                                        np.array(train_df['target'], dtype=np.uint8),
+    print(tf.cast(train_df['image_data'].to_list(), tf.float64))
+    X_train, X_test, y_train, y_test = train_test_split(tf.cast(train_df['image_data'].to_list(), tf.float64),
+                                                        train_df['target'],
                                                         test_size=.2)
     print(model.summary())
     model.fit(X_train, y_train, epochs=100, validation_data=(X_test, y_test))

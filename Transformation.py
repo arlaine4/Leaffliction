@@ -189,7 +189,7 @@ class Transformation:
         self.obj = obj
         return analysis_image
 
-    def peudolandmarks(self):
+    def pseudolandmarks(self):
         if self.mask is None:
             raise Exception("Need to call analysis_objects() first")
 
@@ -251,7 +251,7 @@ def transform_image(options):
     transformation.masked()
     transformation.roi()
     transformation.analysis_objects()
-    transformation.peudolandmarks()
+    transformation.pseudolandmarks()
     transformation.color_histogram()
 
 
