@@ -2,12 +2,23 @@ import argparse
 import matplotlib as plt
 from plantcv import plantcv as pcv
 import os
-import sys
+from tqdm import tqdm
+
+
+def getlastname(path):
+    if path.endswith("/"):
+        return path.split("/")[-2].split(".")[0]
+    return path.split("/")[-1].split(".")[0]
 
 
 class Transformation:
     def __init__(self, options):
         self.options = options
+
+        # apply write image
+        pcv.params.debug_outdir = self.options.outdir
+        if self.options.writeimg:
+            self.name_save = self.options.outdir + "/" + getlastname(self.options.image)
 
         # original
         self.img = None
@@ -33,6 +44,11 @@ class Transformation:
 
         if self.options.debug == "plot":
             pcv.plot_image(img)
+        if self.options.debug == "print":
+            pcv.print_image(
+                img,
+                filename=self.name_save + "_original.jpg",
+            )
 
         self.img = img
         return img
@@ -49,6 +65,11 @@ class Transformation:
 
         if self.options.debug == "plot":
             pcv.plot_image(s_gblur)
+        if self.options.debug == "print":
+            pcv.print_image(
+                s_gblur,
+                filename=self.name_save + "_gaussian_blur.jpg",
+            )
 
         self.blur = s_gblur
         return s_gblur
@@ -93,6 +114,11 @@ class Transformation:
 
         if self.options.debug == "plot":
             pcv.plot_image(masked2)
+        if self.options.debug == "print":
+            pcv.print_image(
+                masked2,
+                filename=self.name_save + "_masked.jpg",
+            )
 
         self.masked2 = masked2
         self.ab = ab_fill
@@ -106,8 +132,7 @@ class Transformation:
 
         roi1, roi_hierarchy = pcv.roi.rectangle(img=self.img, x=0, y=0, h=250, w=250)
 
-        if self.options.debug == "plot":
-            pcv.params.debug = "plot"
+        pcv.params.debug = self.options.debug
 
         roi_objects, hierarchy3, kept_mask, obj_area = pcv.roi_objects(
             img=self.img,
@@ -118,8 +143,21 @@ class Transformation:
             roi_type="partial",
         )
 
-        if self.options.debug == "plot":
-            pcv.params.debug = None
+        if self.options.debug == "print":
+            file_rename = (
+                self.options.outdir
+                + "/"
+                + str(pcv.params.device - 2)
+                + "_obj_on_img.png"
+            )
+            file_delete = (
+                self.options.outdir + "/" + str(pcv.params.device - 1) + "_roi_mask.png"
+            )
+
+            os.remove(file_delete)
+            os.rename(file_rename, self.name_save + "_roi_mask.jpg")
+
+        pcv.params.debug = None
 
         self.roi_objects = roi_objects
         self.hierarchy = hierarchy3
@@ -141,6 +179,11 @@ class Transformation:
 
         if self.options.debug == "plot":
             pcv.plot_image(analysis_image)
+        if self.options.debug == "print":
+            pcv.print_image(
+                analysis_image,
+                filename=self.name_save + "_analysis_objects.jpg",
+            )
 
         self.mask = mask
         self.obj = obj
@@ -150,15 +193,22 @@ class Transformation:
         if self.mask is None:
             raise Exception("Need to call analysis_objects() first")
 
-        if self.options.debug == "plot":
-            pcv.params.debug = "plot"
+        pcv.params.debug = self.options.debug
 
         top_x, bottom_x, center_v_x = pcv.x_axis_pseudolandmarks(
             img=self.img, obj=self.obj, mask=self.mask, label="default"
         )
 
-        if self.options.debug == "plot":
-            pcv.params.debug = None
+        pcv.params.debug = None
+        if self.options.debug == "print":
+            file_rename = (
+                self.options.outdir
+                + "/"
+                + str(pcv.params.device - 1)
+                + "_x_axis_pseudolandmarks.png"
+            )
+
+            os.rename(file_rename, self.name_save + "_pseudolandmarks.jpg")
         return top_x, bottom_x, center_v_x
 
     def color_histogram(self):
@@ -174,6 +224,11 @@ class Transformation:
 
         if self.options.debug == "plot":
             pcv.plot_image(color_histogram)
+        if self.options.debug == "print":
+            pcv.print_image(
+                color_histogram,
+                filename=self.name_save + "_color_histogram.jpg",
+            )
 
         return color_histogram
 
@@ -189,41 +244,71 @@ class options:
         self.outdir = outdir
 
 
+def transform_image(options):
+    transformation = Transformation(options)
+    transformation.original()
+    transformation.gaussian_blur()
+    transformation.masked()
+    transformation.roi()
+    transformation.analysis_objects()
+    transformation.peudolandmarks()
+    transformation.color_histogram()
+
+
+def recalculate(src, path):
+    if not src.endswith("/"):
+        src += "/"
+
+    last = getlastname(src)
+    relative_path = path[len(src) :]
+
+    if relative_path == "":
+        return last
+    return last + "/" + relative_path
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("image", type=str, help="Path to input image file.")
-    parser.add_argument("-src", type=str, help="Path to the source dir.")
-    parser.add_argument("-dst", type=str, help="Path to the destination dir.")
+
+    # check number of arguments
+    parser.add_argument("-src", type=str, help="Path to the source dir or image.")
+    parser.add_argument(
+        "-dst", type=str, help="Path to the destination dir. (needed if src is a dir)"
+    )
     args = parser.parse_args()
 
-    if args.image is not None:
-        options = options(args.image)
-        transformation = Transformation(options)
-        transformation.original()
-        transformation.gaussian_blur()
-        transformation.masked()
-        transformation.roi()
-        transformation.analysis_objects()
-        transformation.peudolandmarks()
-        transformation.color_histogram()
+    if args.src is not None and os.path.isfile(args.src):
+        if not args.src.endswith(".JPG") and not args.src.endswith(".jpg"):
+            exit("Not a JPG file")
+        options = options(args.src)
+        transform_image(options)
     else:
         if args.src is None or args.dst is None:
             raise Exception("Need to specify src and dst")
+        if not os.path.isdir(args.src):
+            raise Exception("src is not a dir")
+        if not os.path.isdir(args.dst):
+            raise Exception("dst is not a dir")
 
         src = args.src
         dst = args.dst
 
-        # TODO SAVE RESULTS
-
         for root, dirs, files in os.walk(src):
-            for file in files:
+            name = recalculate(src, root)
+
+            try:
+                os.makedirs(os.path.join(dst, name))
+            except FileExistsError:
+                pass
+
+            print("Doing batch for directory", name, "found", len(files), "pictures")
+            for file in tqdm(files):
                 if file.endswith(".JPG") or file.endswith(".jpg"):
-                    options = options(os.path.join(root, file), debug=None)
-                    transformation = Transformation(options)
-                    transformation.original()
-                    transformation.gaussian_blur()
-                    transformation.masked()
-                    transformation.roi()
-                    transformation.analysis_objects()
-                    transformation.peudolandmarks()
-                    transformation.color_histogram()
+                    opt = options(
+                        os.path.join(root, file),
+                        debug="print",
+                        writeimg=True,
+                        outdir=dst + "/" + name,
+                    )
+                    transform_image(opt)
+            print()
