@@ -6,27 +6,31 @@ import numpy as np
 from Distribution import load_images_from_directory
 from sklearn.model_selection import train_test_split
 
-import tensorflow as tf 
+import tensorflow as tf
 from tensorflow.keras import layers, models
+from tensorflow.keras.utils import image_dataset_from_directory
 
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 TARGETS_DICT = {}
+
 
 def fill_target_dict(dir_and_images):
     global TARGETS_DICT
     for key, val in dir_and_images.items():
-        key = key.split('/')[-1]
+        key = key.split("/")[-1]
         TARGETS_DICT[key] = len(TARGETS_DICT.keys())
 
 
 def prepare_dataset(dir_and_images):
     fill_target_dict(dir_and_images)
-    train_df = pd.DataFrame(columns=['target', 'image_path', 'image_data'])
+    train_df = pd.DataFrame(columns=["target", "image_path"])
+
     for target, paths in dir_and_images.items():
         print(f"Generate dataset for {target}")
-        key_target_name = target.split('/')[-1]
+        key_target_name = target.split("/")[-1]
         images_paths = []
         images_data = []
         for path in paths:
@@ -35,17 +39,21 @@ def prepare_dataset(dir_and_images):
 
             image = cv2.imread(image_path, cv2.COLOR_RGB2BGR)
             image = np.array(image)
-            image = image.astype('float32')
-            image /= 255
             images_data.append(image)
-        df = pd.DataFrame({'target': [TARGETS_DICT[key_target_name] for i in range(len(images_paths))],
-                           'image_path': images_paths,
-                           'image_data': images_data})
+        df = pd.DataFrame(
+            {
+                "target": [
+                    TARGETS_DICT[key_target_name] for i in range(len(images_paths))
+                ],
+                "image_path": images_paths,
+                "image_data": images_data,
+            }
+        )
     train_df = pd.concat([train_df, df])
-    train_df.to_csv('test.csv')
+    train_df.to_csv("test.csv")
     return train_df
-            #image_path = os.path.join()
-            #image_path = os.path.join(path
+    # image_path = os.path.join()
+    # image_path = os.path.join(path
     """for key, val in dir_and_images.items():
         # Extracting target class from path
         key_target = key.split('/')[-1]
@@ -69,19 +77,30 @@ def prepare_dataset(dir_and_images):
     return train_df"""
 
 
-def generate_model():
+def generate_model(dataset):
     model = models.Sequential()
-    model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(256, 256, 3)))
+    model.add(layers.Rescaling(1.0 / 255))
+    model.add(
+        layers.Conv2D(
+            32,
+            (3, 3),
+            activation="relu",
+            input_shape=(256, 256, 3),
+        )
+    )
     model.add(layers.MaxPooling2D((2, 2)))
-    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.Conv2D(64, (3, 3), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Flatten())
-    model.add(layers.Dense(128, activation='relu'))
-    model.add(layers.Dense(64, activation='relu'))
-    model.add(layers.Dense(10, activation='softmax'))
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
+    model.add(layers.Dense(128, activation="relu"))
+    model.add(layers.Dense(64, activation="relu"))
+    model.add(layers.Dense(len(dataset.class_names), activation="softmax"))
+
+    model.compile(
+        optimizer="adam",
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=["accuracy"],
+    )
     return model
 
 
@@ -91,22 +110,15 @@ def load_image_from_path(image_path):
 
 
 def main_training(path):
-    final_dirs = {}
-    for root, dirs, files in os.walk(path):
-        if not dirs:
-            final_dirs[root] = load_images_from_directory(root)
-    train_df = prepare_dataset(final_dirs)
-    model = generate_model()
-    
-    print(tf.cast(train_df['image_data'].to_list(), tf.float64))
-    X_train, X_test, y_train, y_test = train_test_split(tf.cast(train_df['image_data'].to_list(), tf.float64),
-                                                        train_df['target'],
-                                                        test_size=.2)
+    dataset = image_dataset_from_directory(path)
+    model = generate_model(dataset)
+
+    model.build(input_shape=(256, 256, 3))
     print(model.summary())
-    model.fit(X_train, y_train, epochs=100, validation_data=(X_test, y_test))
-    test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
-    print("loss : ", test_loss)
-    print("acc : ", test_acc)
+    model.fit(dataset, epochs=10)
+    # test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
+    # print("loss : ", test_loss)
+    # print("acc : ", test_acc)
 
 
 if __name__ == "__main__":
