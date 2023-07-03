@@ -101,21 +101,18 @@ def generate_model(dataset):
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=["accuracy"],
     )
+
     return model
 
 
-def load_image_from_path(image_path):
-    image = cv2.imread(image_path)
-    return image
-
-
 def main_training(path):
-    dataset = image_dataset_from_directory(path)
-    model = generate_model(dataset)
+    data = image_dataset_from_directory(
+        path, validation_split=0.2, subset="both", seed=42, image_size=(256, 256)
+    )
 
-    model.build(input_shape=(256, 256, 3))
-    print(model.summary())
-    model.fit(dataset, epochs=10)
+    model = generate_model(data[0])
+
+    model.fit(data[0], epochs=10, validation_data=data[1])
     # test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
     # print("loss : ", test_loss)
     # print("acc : ", test_acc)
