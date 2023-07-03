@@ -61,6 +61,7 @@ def prepare_dataset(dir_and_images):
             }
         )
     train_df = pd.concat([train_df, df])
+    # Add check to know if we should generate train_df or not
     train_df.to_csv("test.csv")
     return train_df
 
@@ -100,15 +101,7 @@ def main_training(path):
 
     model = generate_model(data[0])
 
-    history = model.fit(data[0], epochs=7)
-
-    plt.plot(history.history['accuracy'], label='accuracy')
-    plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.ylim([0.5, 1])
-    plt.legend(loc='lower right')
-    plt.show()
+    model.fit(data[0], epochs=6)
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
     print('test_loss : ', test_loss)
