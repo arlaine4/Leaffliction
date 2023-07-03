@@ -6,6 +6,7 @@ import numpy as np
 from Distribution import load_images_from_directory
 from sklearn.model_selection import train_test_split
 
+import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
@@ -30,16 +31,26 @@ def prepare_dataset(dir_and_images):
 
     for target, paths in dir_and_images.items():
         print(f"Generate dataset for {target}")
+        # Extracting target name from folder path
         key_target_name = target.split("/")[-1]
+        # List of image paths
         images_paths = []
+        # List of image matrix data
         images_data = []
+        # Going through each image path from a specific folder 'target'
         for path in paths:
+            # Getting full image path
             image_path = os.path.join(target, path)
             images_paths.append(image_path)
 
+            # Loading and preprocessing image
             image = cv2.imread(image_path, cv2.COLOR_RGB2BGR)
             image = np.array(image)
             images_data.append(image)
+
+            # Augment image using Augmentation.py
+            # Transform image using only two methods from Transformation.py (blur & mask)
+            # -> add result of augmentation and transformation in lists images and images_paths
         df = pd.DataFrame(
             {
                 "target": [
@@ -52,29 +63,6 @@ def prepare_dataset(dir_and_images):
     train_df = pd.concat([train_df, df])
     train_df.to_csv("test.csv")
     return train_df
-    # image_path = os.path.join()
-    # image_path = os.path.join(path
-    """for key, val in dir_and_images.items():
-        # Extracting target class from path
-        key_target = key.split('/')[-1]
-        images_paths = []
-        values = []
-        for value in val:
-            # Creating valid path to image
-            image_path = os.path.join(key, value)
-            # Updating list of images paths
-            images_paths.append(image_path)
-            # Updating list of images metadata
-            values.append(load_image_from_path(image_path))
-
-        # Creating dataframe for each target
-        df = pd.DataFrame({'target': [TARGETS_DICT[key_target] for i in range(len(val))],
-                           'image_path': images_paths,
-                           'image_data': values})
-        # Adding new target dataframe to train_df
-        train_df = pd.concat([train_df, df])
-    print(train_df.head(10))
-    return train_df"""
 
 
 def generate_model(dataset):
@@ -112,7 +100,20 @@ def main_training(path):
 
     model = generate_model(data[0])
 
-    model.fit(data[0], epochs=10, validation_data=data[1])
+    history = model.fit(data[0], epochs=7)
+
+    plt.plot(history.history['accuracy'], label='accuracy')
+    plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.ylim([0.5, 1])
+    plt.legend(loc='lower right')
+    plt.show()
+
+    test_loss, test_acc = model.evaluate(data[1], verbose=2)
+    print('test_loss : ', test_loss)
+    print('test_acc : ', test_acc)
+    model.save('model.h5')
     # test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
     # print("loss : ", test_loss)
     # print("acc : ", test_acc)
