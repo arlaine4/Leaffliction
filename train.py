@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 import warnings
 
@@ -96,17 +97,25 @@ def generate_model(dataset):
 
 def main_training(path):
     data = image_dataset_from_directory(
-        path, validation_split=0.2, subset="both", seed=42, image_size=(256, 256)
+        path,
+        validation_split=0.2,
+        subset="both",
+        seed=42,
+        image_size=(256, 256),
     )
 
     model = generate_model(data[0])
 
-    model.fit(data[0], epochs=6)
+    model.fit(data[0], epochs=6, validation_data=data[1])
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
-    print('test_loss : ', test_loss)
-    print('test_acc : ', test_acc)
-    model.save('model.h5')
+    print("test_loss : ", test_loss)
+    print("test_acc : ", test_acc)
+    model.save("model/model.h5")
+    class_names = data[0].class_names
+    df = pd.DataFrame(columns=class_names)
+    df.to_csv("model/class_names.csv", index=False)
+
     # test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
     # print("loss : ", test_loss)
     # print("acc : ", test_acc)

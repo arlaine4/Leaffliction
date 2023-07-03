@@ -255,6 +255,13 @@ def transform_image(options):
     transformation.color_histogram()
 
 
+def getMasked(options):
+    transformation = Transformation(options)
+    transformation.original()
+    transformation.gaussian_blur()
+    return transformation.masked()
+
+
 def recalculate(src, path):
     if not src.endswith("/"):
         src += "/"
