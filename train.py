@@ -3,14 +3,12 @@ import sys
 import cv2
 import pandas as pd
 import numpy as np
-from Distribution import load_images_from_directory
-from sklearn.model_selection import train_test_split
 
-import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+# from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from Augmentation import main_augmentation
 
 import warnings
 
@@ -49,9 +47,6 @@ def prepare_dataset(dir_and_images):
             image = np.array(image)
             images_data.append(image)
 
-            # Augment image using Augmentation.py
-            # Transform image using only two methods from Transformation.py (blur & mask)
-            # -> add result of augmentation and transformation in lists images and images_paths
         df = pd.DataFrame(
             {
                 "target": [
@@ -75,7 +70,7 @@ def generate_model(dataset):
             32,
             (3, 3),
             activation="relu",
-            input_shape=(256, 256, 3),
+            input_shape=(64, 64, 3),
         )
     )
     model.add(layers.MaxPooling2D((2, 2)))
@@ -95,16 +90,29 @@ def generate_model(dataset):
     return model
 
 
+def get_list_of_folders_to_augment(path):
+    distrib = {}
+    for root, dirs, files in os.walk(path):
+        if not dirs:
+            distrib[root] = len(os.listdir(root))
+    distrib = dict(sorted(distrib.items(), key=lambda x: x[1]))
+    return distrib
+
+
 def main_training(path):
+    folders_to_augment = get_list_of_folders_to_augment(path)
+    for folder_path in folders_to_augment:
+        print(f'calling main_augmentation for {folder_path}')
+        # main_augmentation(folder_path, "batch")
     data = image_dataset_from_directory(
         path,
         validation_split=0.2,
         subset="both",
         seed=42,
-        image_size=(256, 256),
+        image_size=(64, 64),
     )
 
-    model = generate_model(data[0])
+    """model = generate_model(data[0])
 
     model.fit(data[0], epochs=6, validation_data=data[1])
 
@@ -114,11 +122,7 @@ def main_training(path):
     model.save("model/model.h5")
     class_names = data[0].class_names
     df = pd.DataFrame(columns=class_names)
-    df.to_csv("model/class_names.csv", index=False)
-
-    # test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
-    # print("loss : ", test_loss)
-    # print("acc : ", test_acc)
+    df.to_csv("model/class_names.csv", index=False)"""
 
 
 if __name__ == "__main__":

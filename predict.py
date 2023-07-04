@@ -23,6 +23,8 @@ if __name__ == "__main__":
     # Load the model, image and class names
     model = load_model(args.model)
     image = cv2.imread(args.image)
+    # Resizing image to match the input shape the model is expecting
+    image = cv2.resize(image, (64, 64), interpolation=cv2.INTER_AREA)
     class_names = np.loadtxt(args.class_names, dtype=str, delimiter=",")
 
     # Predict the class of the image
