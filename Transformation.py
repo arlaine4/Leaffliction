@@ -47,7 +47,7 @@ class Transformation:
         if self.options.debug == "print":
             pcv.print_image(
                 img,
-                filename=self.name_save + "_original.jpg",
+                filename=self.name_save + ".JPG",
             )
 
         self.img = img
@@ -68,7 +68,7 @@ class Transformation:
         if self.options.debug == "print":
             pcv.print_image(
                 s_gblur,
-                filename=self.name_save + "_gaussian_blur.jpg",
+                filename=self.name_save + "_gaussian_blur.JPG",
             )
 
         self.blur = s_gblur
@@ -117,7 +117,7 @@ class Transformation:
         if self.options.debug == "print":
             pcv.print_image(
                 masked2,
-                filename=self.name_save + "_masked.jpg",
+                filename=self.name_save + "_masked.JPG",
             )
 
         self.masked2 = masked2
@@ -155,7 +155,7 @@ class Transformation:
             )
 
             os.remove(file_delete)
-            os.rename(file_rename, self.name_save + "_roi_mask.jpg")
+            os.rename(file_rename, self.name_save + "_roi_mask.JPG")
 
         pcv.params.debug = None
 
@@ -182,7 +182,7 @@ class Transformation:
         if self.options.debug == "print":
             pcv.print_image(
                 analysis_image,
-                filename=self.name_save + "_analysis_objects.jpg",
+                filename=self.name_save + "_analysis_objects.JPG",
             )
 
         self.mask = mask
@@ -208,7 +208,7 @@ class Transformation:
                 + "_x_axis_pseudolandmarks.png"
             )
 
-            os.rename(file_rename, self.name_save + "_pseudolandmarks.jpg")
+            os.rename(file_rename, self.name_save + "_pseudolandmarks.JPG")
         return top_x, bottom_x, center_v_x
 
     def color_histogram(self):
@@ -227,7 +227,7 @@ class Transformation:
         if self.options.debug == "print":
             pcv.print_image(
                 color_histogram,
-                filename=self.name_save + "_color_histogram.jpg",
+                filename=self.name_save + "_color_histogram.JPG",
             )
 
         return color_histogram
@@ -267,6 +267,43 @@ def recalculate(src, path):
     return last + "/" + relative_path
 
 
+def already_done(path):
+    if not os.path.isfile(path):
+        return False
+    return True
+
+
+def batch_transform(src, dst):
+    if src is None or dst is None:
+        raise Exception("Need to specify src and dst")
+    if not os.path.isdir(src):
+        raise Exception("src is not a dir")
+    if not os.path.isdir(dst):
+        os.makedirs(dst)
+
+    for root, _, files in os.walk(src):
+        name = recalculate(src, root)
+
+        try:
+            os.makedirs(os.path.join(dst, name))
+        except FileExistsError:
+            pass
+
+        print("Doing batch for directory", name, "found", len(files), "pictures")
+        for file in tqdm(files):
+            if file.endswith(".JPG"):
+                if already_done(os.path.join(dst, name, file)):
+                    continue
+                opt = options(
+                    os.path.join(root, file),
+                    debug="print",
+                    writeimg=True,
+                    outdir=dst + "/" + name,
+                )
+                transform_image(opt)
+        print()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -278,37 +315,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.src is not None and os.path.isfile(args.src):
-        if not args.src.endswith(".JPG") and not args.src.endswith(".jpg"):
+        if not args.src.endswith(".JPG"):
             exit("Not a JPG file")
         options = options(args.src)
         transform_image(options)
     else:
-        if args.src is None or args.dst is None:
-            raise Exception("Need to specify src and dst")
-        if not os.path.isdir(args.src):
-            raise Exception("src is not a dir")
-        if not os.path.isdir(args.dst):
-            raise Exception("dst is not a dir")
-
-        src = args.src
-        dst = args.dst
-
-        for root, dirs, files in os.walk(src):
-            name = recalculate(src, root)
-
-            try:
-                os.makedirs(os.path.join(dst, name))
-            except FileExistsError:
-                pass
-
-            print("Doing batch for directory", name, "found", len(files), "pictures")
-            for file in tqdm(files):
-                if file.endswith(".JPG") or file.endswith(".jpg"):
-                    opt = options(
-                        os.path.join(root, file),
-                        debug="print",
-                        writeimg=True,
-                        outdir=dst + "/" + name,
-                    )
-                    transform_image(opt)
-            print()
+        batch_transform(args.src, args.dst)

@@ -10,6 +10,7 @@ from tensorflow.keras.utils import image_dataset_from_directory
 
 # from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from Augmentation import main_augmentation
+from Transformation import batch_transform
 
 import warnings
 
@@ -109,7 +110,10 @@ def main_training(path):
     for folder_path in folders_to_augment:
         print(f"calling main_augmentation for {folder_path}")
         main_augmentation(folder_path, "batch")
-        # Add call to transformation
+
+    batch_transform(path, "transformed_directory")
+
+    # Add call to transformation
     data = image_dataset_from_directory(
         path,
         validation_split=0.2,
