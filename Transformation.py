@@ -55,7 +55,7 @@ class Transformation:
 
     def gaussian_blur(self):
         if self.img is None:
-            raise Exception("Need to call original() first")
+            self.original()
 
         s = pcv.rgb2gray_hsv(rgb_img=self.img, channel="s")
         s_thresh = pcv.threshold.binary(
@@ -76,7 +76,7 @@ class Transformation:
 
     def masked(self):
         if self.blur is None:
-            raise Exception("Need to call gaussian_blur() first")
+            self.gaussian_blur()
 
         b = pcv.rgb2gray_lab(rgb_img=self.img, channel="b")
         b_thresh = pcv.threshold.binary(
@@ -126,7 +126,7 @@ class Transformation:
 
     def roi(self):
         if self.masked2 is None:
-            raise Exception("Need to call mask() first")
+            self.masked()
 
         id_objects, obj_hierarchy = pcv.find_objects(img=self.img, mask=self.ab)
 
@@ -167,7 +167,7 @@ class Transformation:
 
     def analysis_objects(self):
         if self.roi_objects is None:
-            raise Exception("Need to call mask() first")
+            self.roi()
 
         obj, mask = pcv.object_composition(
             img=self.img, contours=self.roi_objects, hierarchy=self.hierarchy
@@ -191,7 +191,7 @@ class Transformation:
 
     def pseudolandmarks(self):
         if self.mask is None:
-            raise Exception("Need to call analysis_objects() first")
+            self.analysis_objects()
 
         pcv.params.debug = self.options.debug
 
@@ -213,7 +213,7 @@ class Transformation:
 
     def color_histogram(self):
         if self.mask is None:
-            raise Exception("Need to call analysis_objects() first")
+            self.analysis_objects()
 
         color_histogram = pcv.analyze_color(
             rgb_img=self.img,
@@ -253,13 +253,6 @@ def transform_image(options):
     transformation.analysis_objects()
     transformation.pseudolandmarks()
     transformation.color_histogram()
-
-
-def getMasked(options):
-    transformation = Transformation(options)
-    transformation.original()
-    transformation.gaussian_blur()
-    return transformation.masked()
 
 
 def recalculate(src, path):

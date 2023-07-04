@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
-from Transformation import getMasked, options
+from Transformation import Transformation, options
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prediction of images")
@@ -33,7 +33,8 @@ if __name__ == "__main__":
     class_name_prediction = class_names[np.argmax(prediction)]
 
     options = options(args.image, debug=None)
-    masked = getMasked(options)
+    tr = Transformation(options)
+    masked = tr.masked()
 
     plt.suptitle(f"Prediction: {class_name_prediction}")
 
