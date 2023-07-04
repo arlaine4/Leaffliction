@@ -131,4 +131,5 @@ dmypy.json
 # dataset
 images/
 augmented_directory/
+transformed_directory/
 model/
