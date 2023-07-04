@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
+
 # from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from Augmentation import main_augmentation
 
@@ -102,7 +103,7 @@ def get_list_of_folders_to_augment(path):
 def main_training(path):
     folders_to_augment = get_list_of_folders_to_augment(path)
     for folder_path in folders_to_augment:
-        print(f'calling main_augmentation for {folder_path}')
+        print(f"calling main_augmentation for {folder_path}")
         main_augmentation(folder_path, "batch")
     data = image_dataset_from_directory(
         path,
