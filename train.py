@@ -77,8 +77,8 @@ def generate_model(dataset):
     model.add(layers.Conv2D(64, (3, 3), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Flatten())
-    model.add(layers.Dense(128, activation="relu"))
     model.add(layers.Dense(64, activation="relu"))
+    model.add(layers.Dense(32, activation="relu"))
     model.add(layers.Dense(len(dataset.class_names), activation="softmax"))
 
     model.compile(
@@ -103,7 +103,7 @@ def main_training(path):
     folders_to_augment = get_list_of_folders_to_augment(path)
     for folder_path in folders_to_augment:
         print(f'calling main_augmentation for {folder_path}')
-        # main_augmentation(folder_path, "batch")
+        main_augmentation(folder_path, "batch")
     data = image_dataset_from_directory(
         path,
         validation_split=0.2,
@@ -112,9 +112,9 @@ def main_training(path):
         image_size=(64, 64),
     )
 
-    """model = generate_model(data[0])
+    model = generate_model(data[0])
 
-    model.fit(data[0], epochs=6, validation_data=data[1])
+    model.fit(data[0], epochs=10, validation_data=data[1])
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
     print("test_loss : ", test_loss)
@@ -122,7 +122,7 @@ def main_training(path):
     model.save("model/model.h5")
     class_names = data[0].class_names
     df = pd.DataFrame(columns=class_names)
-    df.to_csv("model/class_names.csv", index=False)"""
+    df.to_csv("model/class_names.csv", index=False)
 
 
 if __name__ == "__main__":

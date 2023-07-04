@@ -28,7 +28,8 @@ if __name__ == "__main__":
     class_names = np.loadtxt(args.class_names, dtype=str, delimiter=",")
 
     # Predict the class of the image
-    prediction = model.predict(np.expand_dims(image, axis=0))
+    # prediction = model.predict(np.expand_dims(image, axis=0))
+    prediction = model.predict(image)
     class_name_prediction = class_names[np.argmax(prediction)]
 
     options = options(args.image, debug=None)

@@ -172,7 +172,7 @@ def main_augmentation(path, mode):
                 final_dirs[root] = load_images_from_directory(root)
         for directory, items in final_dirs.items():
             print(f'Doing batch for directory {directory},'
-                  'found {len(items)} pictures')
+                  f'found {len(items)} pictures')
             new_d_name_augmented = '/'.join(directory.split('/')[1:])
             try:
                 os.makedirs(os.path.join('augmented_directory',
