@@ -70,13 +70,14 @@ def generate_model(dataset):
             32,
             (3, 3),
             activation="relu",
-            input_shape=(64, 64, 3),
+            input_shape=(128, 128, 3),
         )
     )
     model.add(layers.MaxPooling2D((2, 2)))
     model.add(layers.Conv2D(64, (3, 3), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Flatten())
+    model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(32, activation="relu"))
     model.add(layers.Dense(len(dataset.class_names), activation="softmax"))
@@ -96,20 +97,24 @@ def get_list_of_folders_to_augment(path):
         if not dirs:
             distrib[root] = len(os.listdir(root))
     distrib = dict(sorted(distrib.items(), key=lambda x: x[1]))
-    return distrib
+    to_augment = len(list(distrib.keys())) // 2
+    final_distrib = {k: distrib[k] for k in list(distrib)[:to_augment]}
+    return final_distrib
 
 
 def main_training(path):
     folders_to_augment = get_list_of_folders_to_augment(path)
+    print(folders_to_augment)
     for folder_path in folders_to_augment:
         print(f'calling main_augmentation for {folder_path}')
         main_augmentation(folder_path, "batch")
+        # Add call to transformation
     data = image_dataset_from_directory(
         path,
         validation_split=0.2,
         subset="both",
         seed=42,
-        image_size=(64, 64),
+        image_size=(128, 128),
     )
 
     model = generate_model(data[0])
