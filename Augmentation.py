@@ -5,6 +5,7 @@ import imutils
 import cv2
 import matplotlib.pyplot as plt
 
+from tqdm import tqdm
 from copy import deepcopy
 from Distribution import load_images_from_directory
 
@@ -26,7 +27,8 @@ class ImageAugmentation:
         # This block is used if a folder is provided as a path argument
         if custom_path:
             custom_path += f"/{image_name.split('.')[0]}_{method_name}.JPG"
-            cv2.imwrite(custom_path, image)
+            if not os.path.exists(custom_path):
+                cv2.imwrite(custom_path, image)
         # This block is used if the path points to an image
         else:
             save_path = SAVING_PATH.split('/')[:-1]
@@ -158,29 +160,37 @@ def plot_all_pictures(image, image_path, image_augmentation):
 
 
 def main_augmentation(path, mode):
+    # Removing useless \ inside path because of bad image name formatting
     path.replace('\\', '') if '\\' in path else path
     img_augmentation = ImageAugmentation()
+    # Processing single image path
     if mode == 'image':
         global SAVING_PATH
         SAVING_PATH = path
         image = img_augmentation.load_image(path)
         plot_all_pictures(image, path, img_augmentation)
+    # Processing folder path
     else:
+        # Dict of folder paths and their corresponding files
         final_dirs = {}
+        # Extracing only 'final' dirs, ones that only have files inside and not
+        # more sub folders
         for root, dirs, files in os.walk(path):
             if not dirs:
                 final_dirs[root] = load_images_from_directory(root)
+        # Running augmentation loop for each of the final folders found
         for directory, items in final_dirs.items():
             print(f'Doing batch for directory {directory},'
                   f'found {len(items)} pictures')
+            # Generating final destination path in augmented_directory
             new_d_name_augmented = '/'.join(directory.split('/')[1:])
             try:
                 os.makedirs(os.path.join('augmented_directory',
                                          new_d_name_augmented))
             except FileExistsError:
                 pass
-
-            for image in items:
+            # Running image augmentation for each image found inside the folder
+            for image in tqdm(items):
                 image_name = deepcopy(image)
                 image = img_augmentation.load_image(os.path.join(directory,
                                                                  image))
@@ -198,6 +208,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise Exception('Missing path argument')
     default_path = sys.argv[1]
+    # Checking if provided path points to an image or a folder
     if not os.path.exists(default_path):
         raise FileNotFoundError("Path doesn't exist")
     if os.path.isfile(default_path):
