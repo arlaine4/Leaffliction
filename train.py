@@ -65,7 +65,7 @@ def prepare_dataset(dir_and_images):
 
 
 def generate_model(dataset):
-    model = models.Sequential()
+    """model = models.Sequential()
     model.add(layers.Rescaling(1.0 / 255))
     model.add(layers.Conv2D(
         64,
@@ -96,8 +96,8 @@ def generate_model(dataset):
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=["accuracy"],
     )
-    return model
-    """model = models.Sequential()
+    return model"""
+    model = models.Sequential()
     model.add(layers.Rescaling(1.0 / 255))
     model.add(
         layers.Conv2D(
@@ -116,8 +116,13 @@ def generate_model(dataset):
     model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(32, activation="relu"))
-    model.add(layers.Dense(len(dataset.class_names), activation="softmax"))"""
+    model.add(layers.Dense(len(dataset.class_names), activation="softmax"))
 
+    model.compile(
+        optimizer="adam",
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=["accuracy"],
+    )
     return model
 
 
@@ -142,9 +147,9 @@ def main_training(path):
     #batch_transform(path, "transformed_directory")
 
     # Add call to transformation
-    new_path = os.path.join('augmented_directory', path.split('/')[-1])
+    # new_path = os.path.join('augmented_directory', path.split('/')[-1])
     data = image_dataset_from_directory(
-        new_path,
+        path,
         validation_split=0.2,
         subset="both",
         seed=42,
