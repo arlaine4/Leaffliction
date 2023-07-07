@@ -92,9 +92,6 @@ def make_predictions(pred_path, mode, model, class_names):
             else:
                 print(f"Prediction for {image} : \033[31m{class_name_prediction}\033[0m")
         print(f"Got {int((correct_preds / len(images)) * 100)}% valid prediction out of {len(images)} images")
-            #valid_classes.append(class_name_prediction) if true_class == class_name_prediction \
-            #            else valid_classes
-            
 
 
 
