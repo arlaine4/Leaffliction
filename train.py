@@ -4,9 +4,11 @@ import cv2
 import pandas as pd
 import numpy as np
 
+import sklearn
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
+from sklearn.metrics import confusion_matrix
 
 # from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from Augmentation import main_augmentation
@@ -79,6 +81,7 @@ def generate_model(dataset):
     model.add(layers.Conv2D(64, (3, 3), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Flatten())
+    model.add(layers.Dense(128, activation='relu'))
     model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(32, activation="relu"))
@@ -95,13 +98,25 @@ def generate_model(dataset):
 
 def get_list_of_folders_to_augment(path):
     distrib = {}
+    mean = 0
     for root, dirs, files in os.walk(path):
         if not dirs:
             distrib[root] = len(os.listdir(root))
-    distrib = dict(sorted(distrib.items(), key=lambda x: x[1]))
-    to_augment = len(list(distrib.keys())) // 2
-    final_distrib = {k: distrib[k] for k in list(distrib)[:to_augment]}
-    return final_distrib
+            mean += distrib[root]
+    mean /= len(list(distrib.keys()))
+    print('Mean number of images over all directories is : ', mean)
+    for key in list(distrib.keys()):
+        if distrib[key] > mean:
+            _ = distrib.pop(key)
+    print('Final distrib after clean : ', distrib)
+    return distrib
+    # distrib = dict(sorted(distrib.items(), key=lambda x: x[1]))
+    # print('distrib : ', distrib)
+    # to_augment = len(list(distrib.keys())) // 2
+    # print('to augment : ', to_augment)
+    # final_distrib = {k: distrib[k] for k in list(distrib)[:to_augment]}
+    # print('final distrib : ', final_distrib)
+    # return final_distrib
 
 
 def main_training(path):
@@ -124,7 +139,7 @@ def main_training(path):
 
     model = generate_model(data[0])
 
-    model.fit(data[0], epochs=10, validation_data=data[1])
+    model.fit(data[0], epochs=20, validation_data=data[1])
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
     print("test_loss : ", test_loss)
@@ -133,6 +148,13 @@ def main_training(path):
     class_names = data[0].class_names
     df = pd.DataFrame(columns=class_names)
     df.to_csv("model/class_names.csv", index=False)
+    #make_and_plot_confusion_matrix(model, data)
+
+
+#def make_and_plot_confusion_matrix(model, data):
+#    y_true = data[0].class_names
+
+
 
 
 if __name__ == "__main__":
