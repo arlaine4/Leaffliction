@@ -3,6 +3,8 @@ import sys
 import cv2
 import pandas as pd
 import numpy as np
+import shutil
+
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -97,6 +99,8 @@ def generate_model(dataset):
 
 def get_list_of_folders_to_augment(path):
     distrib = {}
+    not_distrib = {}
+
     mean = 0
     for root, dirs, files in os.walk(path):
         if not dirs:
@@ -106,10 +110,13 @@ def get_list_of_folders_to_augment(path):
     print('Mean number of images over all directories is : ', mean)
     for key in list(distrib.keys()):
         if distrib[key] > mean:
-            _ = distrib.pop(key)
+            not_distrib[key] = distrib[key]
+            del distrib[key]
     print('Final distrib after clean : ', distrib)
-    return distrib
- 
+    print('Final not_distrib after clean : ', not_distrib)
+    print()
+    return distrib, not_distrib
+
 
 def prepare_final_dataset_directory(base_path):
     """
@@ -142,17 +149,30 @@ def prepare_final_dataset_directory(base_path):
                     shutil.copy(os.path.join(root, file), \
                         os.path.join('training_data', root.split('/')[-1]))
 
+def prepare_for_not_augmented(folders_to_not_augment):
+    for folder in folders_to_not_augment:
+        for root, dirs, files in os.walk(folder):
+            if len(files) != 0:
+                files = os.listdir(root)
+                for file in files:
+                    shutil.copy(os.path.join(root, file), \
+                        os.path.join('training_data', root.split('/')[-1]))
+
 
 def main_training(path):
-    folders_to_augment = get_list_of_folders_to_augment(path)
+    folders_to_augment, folders_to_not_augment = get_list_of_folders_to_augment(path)
     for folder_path in folders_to_augment:
-        print(f"calling main_augmentation for {folder_path}")
-        main_augmentation(folder_path, "batch")
+        print(f"Augmenting {folder_path}:")
+        main_augmentation(folder_path, "batch", training=True)
+        print(f"Transforming {folder_path}:")
         batch_transform(folder_path, "transformed_directory", training=True)
+        print()
 
     # Add call to transformation
     # new_path = os.path.join('augmented_directory', path.split('/')[-1])
     prepare_final_dataset_directory(path)
+    prepare_for_not_augmented(folders_to_not_augment)
+
     data = image_dataset_from_directory(
         'training_data',
         validation_split=0.2,
@@ -162,7 +182,7 @@ def main_training(path):
     )
 
     model = generate_model(data[0])
-    model.fit(data[0], epochs=20, validation_data=data[1])
+    model.fit(data[0], epochs=8, validation_data=data[1])
 
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)

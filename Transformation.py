@@ -48,7 +48,7 @@ class Transformation:
         if self.options.debug == "print":
             pcv.print_image(
                 img,
-                filename=self.name_save + ".JPG",
+                filename=self.name_save + "_original.JPG",
             )
 
         self.img = img
@@ -263,7 +263,6 @@ def transform_image(options, training):
         transformation.original()
         transformation.gaussian_blur()
         transformation.masked()
-        transformation.roi()
     else:
         transformation.original()
         transformation.gaussian_blur()
