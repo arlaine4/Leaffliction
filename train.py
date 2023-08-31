@@ -69,6 +69,29 @@ def prepare_dataset(dir_and_images):
 def generate_model(dataset):
     model = models.Sequential()
     model.add(layers.Rescaling(1.0 / 255))
+    model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+    model.add(layers.MaxPooling2D(2, 2))
+    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.MaxPooling2D(2, 2))
+    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.MaxPooling2D(2, 2))
+    model.add(layers.Conv2D(32, (1, 1), activation='relu'))
+    model.add(layers.MaxPooling2D(2, 2))
+    model.add(layers.Flatten())
+    model.add(layers.Dense(256, activation='relu'))
+    model.add(layers.Dense(128, activation='relu'))
+    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dense(32, activation='relu'))
+    model.add(layers.Dense(len(dataset.class_names), activation='softmax'))
+
+    model.compile(
+        optimizer='adam',
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=['accuracy'])
+
+    return model
+
+    """model.add(layers.Rescaling(1.0 / 255))
     model.add(
         layers.Conv2D(
             32,
@@ -94,7 +117,7 @@ def generate_model(dataset):
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=["accuracy"],
     )
-    return model
+    return model"""
 
 
 def get_list_of_folders_to_augment(path):
