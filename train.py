@@ -153,16 +153,15 @@ def get_list_of_folders_to_augment(path):
 
 
 def main_training(path):
-    """folders_to_augment = get_list_of_folders_to_augment(path)
+    folders_to_augment = get_list_of_folders_to_augment(path)
     print(folders_to_augment)
     for folder_path in folders_to_augment:
         print(f"calling main_augmentation for {folder_path}")
-        main_augmentation(folder_path, "batch")"""
-
-    #batch_transform(path, "transformed_directory")
+        main_augmentation(folder_path, "batch")
+        batch_transform(folder_path, "transformed_directory")
 
     # Add call to transformation
-    # new_path = os.path.join('augmented_directory', path.split('/')[-1])
+    new_path = os.path.join('augmented_directory', path.split('/')[-1])
     data = image_dataset_from_directory(
         path,
         validation_split=0.2,
