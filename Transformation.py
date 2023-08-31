@@ -106,6 +106,9 @@ class Transformation:
         opened_ab = pcv.opening(gray_img=ab)
 
         xor_img = pcv.logical_xor(bin_img1=maskeda_thresh, bin_img2=maskedb_thresh)
+        xor_img_color = pcv.apply_mask(
+            img=self.img, mask=xor_img, mask_color="white"
+        )
 
         ab_fill = pcv.fill(bin_img=ab, size=200)
 
@@ -115,10 +118,15 @@ class Transformation:
 
         if self.options.debug == "plot":
             pcv.plot_image(masked2)
+            pcv.plot_image(xor_img_color)
         if self.options.debug == "print":
             pcv.print_image(
                 masked2,
                 filename=self.name_save + "_masked.JPG",
+            )
+            pcv.print_image(
+                xor_img_color,
+                filename=self.name_save + "_xor.JPG",
             )
 
         self.masked2 = masked2
