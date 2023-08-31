@@ -67,6 +67,38 @@ def prepare_dataset(dir_and_images):
 
 
 def generate_model(dataset):
+    """model = models.Sequential()
+    model.add(layers.Rescaling(1.0 / 255))
+    model.add(layers.Conv2D(
+        64,
+        (3, 3),
+        input_shape=(128, 128, 3)
+    ))
+    model.add(layers.Conv2D(
+        64,
+        (3, 3)
+    ))
+    model.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Conv2D(
+        64,
+        (3, 3)
+    ))
+    model.add(layers.Conv2D(
+        64,
+        (3, 3)
+    ))
+    model.add(layers.MaxPooling2D((2, 2)))
+    model.add(layers.Flatten())
+    model.add(layers.Dense(1024, activation='relu'))
+    model.add(layers.Dense(256, activation='relu'))
+    model.add(layers.Dense(256, activation='relu'))
+    model.add(layers.Dense(len(dataset.class_names), activation='softmax'))
+    model.compile(
+        optimizer="adam",
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=["accuracy"],
+    )
+    return model"""
     model = models.Sequential()
     model.add(layers.Rescaling(1.0 / 255))
     model.add(
@@ -78,7 +110,9 @@ def generate_model(dataset):
         )
     )
     model.add(layers.MaxPooling2D((2, 2)))
-    model.add(layers.Conv2D(64, (3, 3), activation="relu"))
+    model.add(
+        layers.Conv2D(
+            32, (7, 7), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Flatten())
     model.add(layers.Dense(128, activation='relu'))
@@ -92,7 +126,6 @@ def generate_model(dataset):
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=["accuracy"],
     )
-
     return model
 
 
@@ -120,15 +153,16 @@ def get_list_of_folders_to_augment(path):
 
 
 def main_training(path):
-    folders_to_augment = get_list_of_folders_to_augment(path)
+    """folders_to_augment = get_list_of_folders_to_augment(path)
     print(folders_to_augment)
     for folder_path in folders_to_augment:
         print(f"calling main_augmentation for {folder_path}")
-        main_augmentation(folder_path, "batch")
+        main_augmentation(folder_path, "batch")"""
 
-    batch_transform(path, "transformed_directory")
+    #batch_transform(path, "transformed_directory")
 
     # Add call to transformation
+    # new_path = os.path.join('augmented_directory', path.split('/')[-1])
     data = image_dataset_from_directory(
         path,
         validation_split=0.2,
@@ -138,8 +172,8 @@ def main_training(path):
     )
 
     model = generate_model(data[0])
-
     model.fit(data[0], epochs=20, validation_data=data[1])
+
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
     print("test_loss : ", test_loss)

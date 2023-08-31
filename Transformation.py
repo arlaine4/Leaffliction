@@ -3,6 +3,7 @@ import matplotlib as plt
 from plantcv import plantcv as pcv
 import os
 from tqdm import tqdm
+import sys
 
 
 def getlastname(path):
@@ -308,16 +309,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # check number of arguments
+    if len(sys.argv) <= 2:
+        parser.add_argument("img", type=str, help="Path to the image.")
     parser.add_argument("-src", type=str, help="Path to the source dir or image.")
     parser.add_argument(
         "-dst", type=str, help="Path to the destination dir. (needed if src is a dir)"
     )
     args = parser.parse_args()
 
-    if args.src is not None and os.path.isfile(args.src):
-        if not args.src.endswith(".JPG"):
+    if len(sys.argv) == 2 and os.path.isfile(args.img):
+        if not args.img.endswith(".JPG"):
             exit("Not a JPG file")
-        options = options(args.src)
+        options = options(args.img)
         transform_image(options)
     else:
         batch_transform(args.src, args.dst)

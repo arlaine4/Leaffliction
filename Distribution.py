@@ -2,11 +2,12 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import random
+import argparse
 
 
 def load_images_from_directory(directory_path):
     images = os.listdir(directory_path)
-    images = [image for image in images if image.endswith('.JPG')]
+    images = [image for image in images if image.endswith(".JPG")]
     return images
 
 
@@ -16,14 +17,15 @@ def main_images_distribution(directory_path):
     directory_images = {}
     total_images = 0
     for sub_directory in sub_directories:
-        images = load_images_from_directory(os.path.join(directory_path,
-                                                         sub_directory))
+        images = load_images_from_directory(os.path.join(directory_path, sub_directory))
         if len(images) != 0:
             total_images += len(images)
             directory_images[sub_directory] = images
             valid_sub_directories += 1
-    print(f'Found {valid_sub_directories} sub directories in '
-          f'{directory_path} with a total of {total_images} images.')
+    print(
+        f"Found {valid_sub_directories} sub directories in "
+        f"{directory_path} with a total of {total_images} images."
+    )
     return directory_images
 
 
@@ -43,24 +45,31 @@ def plot_image_distribution(base_directory_name, images_with_directory_names):
     total_images = [len(images) for images in images_list]
     colors = generate_random_hexa_color_codes(len(labels))
 
-    # Pie chart
-    fig, ax = plt.subplots()
-    ax.pie(total_images, labels=labels, autopct='%1.1f%%', colors=colors)
-    plt.title(f'{base_directory_name} pie chart images distribution')
+    # Plotting
+    plt.figure(figsize=(12, 6))
+    plt.suptitle(f"Images distribution in {base_directory_name}")
 
-    # Bar plot
-    fig, ax = plt.subplots()
-    ax.bar(labels, total_images, color=colors)
+    # Pie chart
+    plt.subplot(1, 2, 1)
+    plt.pie(total_images, labels=labels, autopct="%1.1f%%", colors=colors)
+    plt.title("Pie chart")
+
+    # Bar chart
+    plt.subplot(1, 2, 2)
+    plt.bar(labels, total_images, color=colors)
     plt.grid(True)
-    plt.title(f'{base_directory_name} bar plot images distribution')
+    plt.title("Bar chart")
+
     plt.show()
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit("Missing target directory")
-    directory = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("src", type=str, help="Path to the source dir.")
+    args = parser.parse_args()
+
+    directory = args.src
     if not os.path.isdir(directory):
-        sys.exit('Invalid directory path')
+        sys.exit("Invalid directory path")
     directory_names_with_images = main_images_distribution(directory)
     plot_image_distribution(directory, directory_names_with_images)
