@@ -253,7 +253,7 @@ class options:
         self.outdir = outdir
 
 
-def transform_image(options, training):
+def transform_image(options, training=False):
     """
     training mode will remove some transformations so
     we are not feeding the model useless pictures
@@ -316,8 +316,8 @@ def batch_transform(src, dst, training=False):
         print("Doing batch for directory", name, "found", len(files), "pictures")
         for file in tqdm(files):
             if file.endswith(".JPG"):
-                if already_done(os.path.join(dst, name, file)):
-                    continue
+                #if already_done(os.path.join(dst, name, file)):
+                    #continue
                 opt = options(
                     os.path.join(root, file),
                     debug="print",

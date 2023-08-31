@@ -135,7 +135,7 @@ class ImageAugmentation:
 
 def apply_augmentation_techniques(image, image_augmentation, save_image=True, training=False):
     if training:
-        methods = ["reflection", "scaling"]
+        methods = ["reflection", "scaling", "contrast"]
     else:
         methods = ["reflection", "scaling", "rotate", "gaussian_blur", "contrast", "shear"]
     images = [image]
@@ -186,7 +186,8 @@ def main_augmentation(path, mode, training=False):
                 f"Doing batch for directory {directory}," f"found {len(items)} pictures"
             )
             # Generating final destination path in augmented_directory
-            new_d_name_augmented = "/".join(directory.split("/")[1:])
+            # new_d_name_augmented = "/".join(directory.split("/")[1:])
+            new_d_name_augmented = directory.split("/")[-1]
             try:
                 os.makedirs(os.path.join("augmented_directory", new_d_name_augmented))
             except FileExistsError:

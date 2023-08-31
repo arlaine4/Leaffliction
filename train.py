@@ -118,60 +118,61 @@ def get_list_of_folders_to_augment(path):
     return distrib, not_distrib
 
 
-def prepare_final_dataset_directory(base_path):
-    """
-    Function used to generate a single big folder
-    containing the base image, transformed and augmented versions
-    of each image for each class.
-    This folder will be used to generate training and validation
-    dataset.
-    """
+def create_dir(path):
     try:
-        os.makedirs('training_data')
+        os.makedirs(path)
     except FileExistsError:
-        pass
-    for root, dirs, files in os.walk(base_path):
-        if len(dirs) != 0 and len(files) == 0:
-            for _dir in dirs:
-                try:
-                    os.makedirs(os.path.join('training_data', _dir))
-                except FileExistsError:
-                    shutil.rmtree(os.path.join('training_data', _dir))
-                    os.makedirs(os.path.join('training_data', _dir))
+        shutil.rmtree(path)
+        os.makedirs(path)
 
-    to_walk = ['transformed_directory', 'augmented_directory']
+def complete_with_augmented(path, missing):
+    pass
 
-    for folder in to_walk:
-        for root, dirs, files in os.walk(folder):
-            if len(files) != 0:
-                files = os.listdir(root)
+def equalizes_dataset(path, q=0.75):
+    # compute the number of images of each dir
+    dir_and_images = {}
+    for root, dirs, files in os.walk(path):
+        if not dirs:
+            dir_and_images[root] = len(files)
+
+    # compute the quantile
+    quantile = np.quantile(list(dir_and_images.values()), q)
+
+    create_dir('training_data')
+    for root, dirs, files in os.walk(path):
+        if not dirs:
+            if len(files) < quantile:
+                create_dir(os.path.join('training_data', root.split('/')[-1]))
                 for file in files:
                     shutil.copy(os.path.join(root, file), \
                         os.path.join('training_data', root.split('/')[-1]))
 
-def prepare_for_not_augmented(folders_to_not_augment):
-    for folder in folders_to_not_augment:
-        for root, dirs, files in os.walk(folder):
-            if len(files) != 0:
-                files = os.listdir(root)
-                for file in files:
+                main_augmentation(root, "batch", training=True)
+
+                # complete with augmented_directory
+                missing = int(quantile) - len(files)
+                print('Missing : {} for {}'.format(missing, root))
+
+                for c_root, c_dirs, c_files in os.walk('augmented_directory' + '/' + root.split('/')[-1]):
+                    if not c_dirs:
+                        c_files = os.listdir(c_root)
+                        c_files = [f for f in c_files if 'original' not in f]
+                        for file in np.random.choice(c_files, missing, replace=False):
+                            shutil.copy(os.path.join(c_root, file), \
+                                os.path.join('training_data', c_root.split('/')[-1]))
+            else:
+                create_dir(os.path.join('training_data', root.split('/')[-1]))
+                for file in np.random.choice(files, int(quantile), replace=False):
                     shutil.copy(os.path.join(root, file), \
                         os.path.join('training_data', root.split('/')[-1]))
+
+            path = os.path.join('training_data', root.split('/')[-1])
+            batch_transform(path, 'training_data', training=True)
+
 
 
 def main_training(path):
-    folders_to_augment, folders_to_not_augment = get_list_of_folders_to_augment(path)
-    for folder_path in folders_to_augment:
-        print(f"Augmenting {folder_path}:")
-        main_augmentation(folder_path, "batch", training=True)
-        print(f"Transforming {folder_path}:")
-        batch_transform(folder_path, "transformed_directory", training=True)
-        print()
-
-    # Add call to transformation
-    # new_path = os.path.join('augmented_directory', path.split('/')[-1])
-    prepare_final_dataset_directory(path)
-    prepare_for_not_augmented(folders_to_not_augment)
+    equalizes_dataset(path)
 
     data = image_dataset_from_directory(
         'training_data',
@@ -182,7 +183,7 @@ def main_training(path):
     )
 
     model = generate_model(data[0])
-    model.fit(data[0], epochs=8, validation_data=data[1])
+    model.fit(data[0], epochs=15, validation_data=data[1])
 
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
