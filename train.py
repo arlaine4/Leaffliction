@@ -4,19 +4,17 @@ import cv2
 import pandas as pd
 import numpy as np
 
+import warnings
+warnings.filterwarnings("ignore")
+
 import sklearn
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
 from sklearn.metrics import confusion_matrix
 
-# from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from Augmentation import main_augmentation
 from Transformation import batch_transform
-
-import warnings
-
-warnings.filterwarnings("ignore")
 
 TARGETS_DICT = {}
 
@@ -67,38 +65,6 @@ def prepare_dataset(dir_and_images):
 
 
 def generate_model(dataset):
-    """model = models.Sequential()
-    model.add(layers.Rescaling(1.0 / 255))
-    model.add(layers.Conv2D(
-        64,
-        (3, 3),
-        input_shape=(128, 128, 3)
-    ))
-    model.add(layers.Conv2D(
-        64,
-        (3, 3)
-    ))
-    model.add(layers.MaxPooling2D((2, 2)))
-    model.add(layers.Conv2D(
-        64,
-        (3, 3)
-    ))
-    model.add(layers.Conv2D(
-        64,
-        (3, 3)
-    ))
-    model.add(layers.MaxPooling2D((2, 2)))
-    model.add(layers.Flatten())
-    model.add(layers.Dense(1024, activation='relu'))
-    model.add(layers.Dense(256, activation='relu'))
-    model.add(layers.Dense(256, activation='relu'))
-    model.add(layers.Dense(len(dataset.class_names), activation='softmax'))
-    model.compile(
-        optimizer="adam",
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=["accuracy"],
-    )
-    return model"""
     model = models.Sequential()
     model.add(layers.Rescaling(1.0 / 255))
     model.add(
@@ -143,27 +109,52 @@ def get_list_of_folders_to_augment(path):
             _ = distrib.pop(key)
     print('Final distrib after clean : ', distrib)
     return distrib
-    # distrib = dict(sorted(distrib.items(), key=lambda x: x[1]))
-    # print('distrib : ', distrib)
-    # to_augment = len(list(distrib.keys())) // 2
-    # print('to augment : ', to_augment)
-    # final_distrib = {k: distrib[k] for k in list(distrib)[:to_augment]}
-    # print('final distrib : ', final_distrib)
-    # return final_distrib
+ 
+
+def prepare_final_dataset_directory(base_path):
+    """
+    Function used to generate a single big folder
+    containing the base image, transformed and augmented versions
+    of each image for each class.
+    This folder will be used to generate training and validation
+    dataset.
+    """
+    try:
+        os.makedirs('training_data')
+    except FileExistsError:
+        pass
+    for root, dirs, files in os.walk(base_path):
+        if len(dirs) != 0 and len(files) == 0:
+            for _dir in dirs:
+                try:
+                    os.makedirs(os.path.join('training_data', _dir))
+                except FileExistsError:
+                    shutil.rmtree(os.path.join('training_data', _dir))
+                    os.makedirs(os.path.join('training_data', _dir))
+
+    to_walk = ['transformed_directory', 'augmented_directory']
+
+    for folder in to_walk:
+        for root, dirs, files in os.walk(folder):
+            if len(files) != 0:
+                files = os.listdir(root)
+                for file in files:
+                    shutil.copy(os.path.join(root, file), \
+                        os.path.join('training_data', root.split('/')[-1]))
 
 
 def main_training(path):
     folders_to_augment = get_list_of_folders_to_augment(path)
-    print(folders_to_augment)
     for folder_path in folders_to_augment:
         print(f"calling main_augmentation for {folder_path}")
         main_augmentation(folder_path, "batch")
-        batch_transform(folder_path, "transformed_directory")
+        batch_transform(folder_path, "transformed_directory", training=True)
 
     # Add call to transformation
-    new_path = os.path.join('augmented_directory', path.split('/')[-1])
+    # new_path = os.path.join('augmented_directory', path.split('/')[-1])
+    prepare_final_dataset_directory(path)
     data = image_dataset_from_directory(
-        path,
+        'training_data',
         validation_split=0.2,
         subset="both",
         seed=42,
@@ -181,13 +172,6 @@ def main_training(path):
     class_names = data[0].class_names
     df = pd.DataFrame(columns=class_names)
     df.to_csv("model/class_names.csv", index=False)
-    #make_and_plot_confusion_matrix(model, data)
-
-
-#def make_and_plot_confusion_matrix(model, data):
-#    y_true = data[0].class_names
-
-
 
 
 if __name__ == "__main__":

@@ -253,15 +253,25 @@ class options:
         self.outdir = outdir
 
 
-def transform_image(options):
+def transform_image(options, training):
+    """
+    training mode will remove some transformations so
+    we are not feeding the model useless pictures
+    """
     transformation = Transformation(options)
-    transformation.original()
-    transformation.gaussian_blur()
-    transformation.masked()
-    transformation.roi()
-    transformation.analysis_objects()
-    transformation.pseudolandmarks()
-    transformation.color_histogram()
+    if training:
+        transformation.original()
+        transformation.gaussian_blur()
+        transformation.masked()
+        transformation.roi()
+    else:
+        transformation.original()
+        transformation.gaussian_blur()
+        transformation.masked()
+        transformation.roi()
+        transformation.analysis_objects()
+        transformation.pseudolandmarks()
+        transformation.color_histogram()
 
 
 def recalculate(src, path):
@@ -282,7 +292,13 @@ def already_done(path):
     return True
 
 
-def batch_transform(src, dst):
+def batch_transform(src, dst, training=False):
+    """
+    Generate image transformation for each image found from the source
+    directory.
+    Training argument used when calling batch_transform before training
+    a model.
+    """
     if src is None or dst is None:
         raise Exception("Need to specify src and dst")
     if not os.path.isdir(src):
@@ -309,7 +325,7 @@ def batch_transform(src, dst):
                     writeimg=True,
                     outdir=dst + "/" + name,
                 )
-                transform_image(opt)
+                transform_image(opt, training)
         print()
 
 
