@@ -17,7 +17,8 @@ def main_images_distribution(directory_path):
     directory_images = {}
     total_images = 0
     for sub_directory in sub_directories:
-        images = load_images_from_directory(os.path.join(directory_path, sub_directory))
+        images = load_images_from_directory(os.path.join
+                                            (directory_path, sub_directory))
         if len(images) != 0:
             total_images += len(images)
             directory_images[sub_directory] = images

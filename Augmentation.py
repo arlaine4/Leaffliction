@@ -1,5 +1,4 @@
 import os
-import sys
 import numpy as np
 import imutils
 import cv2
@@ -33,7 +32,8 @@ class ImageAugmentation:
         else:
             save_path = SAVING_PATH.split("/")[:-1]
             image_name = SAVING_PATH.split("/")[-1].split(".")[0]
-            destination_folder = "augmented_directory/" + "/".join(save_path[1:])
+            destination_folder = "augmented_directory/" \
+                + "/".join(save_path[1:])
             if not os.path.isdir(destination_folder):
                 os.makedirs(destination_folder)
             final_path = f"{destination_folder}/{image_name}_{method_name}.JPG"
@@ -111,11 +111,13 @@ class ImageAugmentation:
 
         # Applying the crop
         image = image[
-            width_points[0] : width_points[1], height_points[0] : height_points[1]
+            width_points[0]: width_points[1],
+            height_points[0]: height_points[1]
         ]
         # Resizing the image back to its original
         # dimensions with cropping applied
-        image = cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
+        image = cv2.resize(image, (width, height),
+                           interpolation=cv2.INTER_AREA)
         if save_image:
             ImageAugmentation.save_image(image, "scaling")
         return image
@@ -127,17 +129,20 @@ class ImageAugmentation:
         """
         rows, cols, dims = image.shape
         matrix = np.float32([[1, 0.5, 0], [0, 1, 0], [0, 0, 1]])
-        image = cv2.warpPerspective(image, matrix, (int(cols * 1.5), int(rows * 1.5)))
+        image = cv2.warpPerspective(image, matrix,
+                                    (int(cols * 1.5), int(rows * 1.5)))
         if save_image:
             ImageAugmentation.save_image(image, "shear")
         return image
 
 
-def apply_augmentation_techniques(image, image_augmentation, save_image=True, training=False):
+def apply_augmentation_techniques(image, image_augmentation, save_image=True,
+                                  training=False):
     if training:
         methods = ["reflection", "scaling", "contrast"]
     else:
-        methods = ["reflection", "scaling", "rotate", "gaussian_blur", "contrast", "shear"]
+        methods = ["reflection", "scaling", "rotate",
+                   "gaussian_blur", "contrast", "shear"]
     images = [image]
     for method in methods:
         function_call = getattr(image_augmentation, method)
@@ -183,27 +188,32 @@ def main_augmentation(path, mode, training=False):
         # Running augmentation loop for each of the final folders found
         for directory, items in final_dirs.items():
             print(
-                f"Doing batch for directory {directory}," f"found {len(items)} pictures"
+                f"Doing batch for directory {directory},"
+                f"found {len(items)} pictures"
             )
             # Generating final destination path in augmented_directory
             # new_d_name_augmented = "/".join(directory.split("/")[1:])
             new_d_name_augmented = directory.split("/")[-1]
             try:
-                os.makedirs(os.path.join("augmented_directory", new_d_name_augmented))
+                os.makedirs(os.path.join("augmented_directory",
+                            new_d_name_augmented))
             except FileExistsError:
                 pass
             # Running image augmentation for each image found inside the folder
             for image in tqdm(items):
                 image_name = deepcopy(image)
-                image = img_augmentation.load_image(os.path.join(directory, image))
+                image = img_augmentation.load_image(os.path.join(directory,
+                                                                 image))
                 methods, images = apply_augmentation_techniques(
-                    image, img_augmentation, save_image=False, training=training
+                    image, img_augmentation, save_image=False,
+                    training=training
                 )
                 for i, img in enumerate(images):
                     img_augmentation.save_image(
                         img,
                         methods[i],
-                        os.path.join("augmented_directory", new_d_name_augmented),
+                        os.path.join("augmented_directory",
+                                     new_d_name_augmented),
                         image_name,
                     )
 

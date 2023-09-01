@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from plantcv import plantcv as pcv
 from PIL import Image
 import os
-import numpy as np
 from tqdm import tqdm
 import sys
 
@@ -21,7 +20,8 @@ class Transformation:
         # apply write image
         pcv.params.debug_outdir = self.options.outdir
         if self.options.writeimg:
-            self.name_save = self.options.outdir + "/" + getlastname(self.options.image)
+            self.name_save = self.options.outdir + "/" \
+                + getlastname(self.options.image)
 
         # original
         self.img = None
@@ -62,7 +62,8 @@ class Transformation:
         s_thresh = pcv.threshold.binary(
             gray_img=s, threshold=60, max_value=255, object_type="light"
         )
-        s_gblur = pcv.gaussian_blur(img=s_thresh, ksize=(5, 5), sigma_x=0, sigma_y=None)
+        s_gblur = pcv.gaussian_blur(img=s_thresh, ksize=(5, 5),
+                                    sigma_x=0, sigma_y=None)
 
         if self.options.debug == "print":
             pcv.print_image(
@@ -89,26 +90,31 @@ class Transformation:
         masked_b = pcv.rgb2gray_lab(rgb_img=masked, channel="b")
 
         maskeda_thresh = pcv.threshold.binary(
-            gray_img=masked_a, threshold=115, max_value=255, object_type="dark"
+            gray_img=masked_a, threshold=115, max_value=255,
+            object_type="dark"
         )
         maskeda_thresh1 = pcv.threshold.binary(
-            gray_img=masked_a, threshold=135, max_value=255, object_type="light"
+            gray_img=masked_a, threshold=135, max_value=255,
+            object_type="light"
         )
         maskedb_thresh = pcv.threshold.binary(
-            gray_img=masked_b, threshold=128, max_value=255, object_type="light"
+            gray_img=masked_b, threshold=128, max_value=255,
+            object_type="light"
         )
 
         ab1 = pcv.logical_or(bin_img1=maskeda_thresh, bin_img2=maskedb_thresh)
         ab = pcv.logical_or(bin_img1=maskeda_thresh1, bin_img2=ab1)
 
-        opened_ab = pcv.opening(gray_img=ab)
+        # opened_ab = pcv.opening(gray_img=ab)
 
-        xor_img = pcv.logical_xor(bin_img1=maskeda_thresh, bin_img2=maskedb_thresh)
-        xor_img_color = pcv.apply_mask(img=self.img, mask=xor_img, mask_color="white")
+        xor_img = pcv.logical_xor(bin_img1=maskeda_thresh,
+                                  bin_img2=maskedb_thresh)
+        xor_img_color = pcv.apply_mask(img=self.img, mask=xor_img,
+                                       mask_color="white")
 
         ab_fill = pcv.fill(bin_img=ab, size=200)
 
-        closed_ab = pcv.closing(gray_img=ab_fill)
+        # closed_ab = pcv.closing(gray_img=ab_fill)
 
         masked2 = pcv.apply_mask(img=masked, mask=ab_fill, mask_color="white")
 
@@ -130,9 +136,12 @@ class Transformation:
         if self.masked2 is None:
             self.masked()
 
-        id_objects, obj_hierarchy = pcv.find_objects(img=self.img, mask=self.ab)
+        id_objects, obj_hierarchy = pcv.find_objects(img=self.img,
+                                                     mask=self.ab)
 
-        roi1, roi_hierarchy = pcv.roi.rectangle(img=self.img, x=0, y=0, h=250, w=250)
+        roi1, roi_hierarchy = pcv.roi.rectangle(img=self.img,
+                                                x=0, y=0, h=250,
+                                                w=250)
 
         pcv.params.debug = self.options.debug
 
@@ -153,7 +162,8 @@ class Transformation:
                 + "_obj_on_img.png"
             )
             file_delete = (
-                self.options.outdir + "/" + str(pcv.params.device - 1) + "_roi_mask.png"
+                self.options.outdir + "/" + str(pcv.params.device - 1)
+                + "_roi_mask.png"
             )
 
             os.remove(file_delete)
@@ -233,7 +243,8 @@ class Transformation:
 
 class options:
     def __init__(
-        self, path, debug="print", writeimg=True, result="results.json", outdir="."
+        self, path, debug="print", writeimg=True,
+        result="results.json", outdir="."
     ):
         self.image = path
         self.debug = debug
@@ -265,7 +276,7 @@ def recalculate(src, path):
         src += "/"
 
     last = getlastname(src)
-    relative_path = path[len(src) :]
+    relative_path = path[len(src):]
 
     if relative_path == "":
         return last
@@ -300,7 +311,8 @@ def batch_transform(src, dst, training=False):
         except FileExistsError:
             pass
 
-        print("Doing batch for directory", name, "found", len(files), "pictures")
+        print("Doing batch for directory", name, "found",
+              len(files), "pictures")
         for file in tqdm(files):
             if file.endswith(".JPG"):
                 # if already_done(os.path.join(dst, name, file)):
@@ -319,7 +331,9 @@ def get_image(name, training=False):
     images = {}
 
     images["original"] = Image.open(name + "_original.JPG")
-    images["gaussian_blur"] = Image.open(name + "_gaussian_blur.JPG").convert("RGB")
+    images["gaussian_blur"] = Image.open(name +
+                                         "_gaussian_blur.JPG") \
+        .convert("RGB")
     images["masked"] = Image.open(name + "_masked.JPG")
     images["xor"] = Image.open(name + "_xor.JPG")
     images["analysis_objects"] = Image.open(name + "_analysis_objects.JPG")
@@ -363,9 +377,11 @@ if __name__ == "__main__":
     # check number of arguments
     if len(sys.argv) <= 2:
         parser.add_argument("img", type=str, help="Path to the image.")
-    parser.add_argument("-src", type=str, help="Path to the source dir or image.")
+    parser.add_argument("-src", type=str,
+                        help="Path to the source dir or image.")
     parser.add_argument(
-        "-dst", type=str, help="Path to the destination dir. (needed if src is a dir)"
+        "-dst", type=str,
+        help="Path to the destination dir. (needed if src is a dir)"
     )
     args = parser.parse_args()
 
