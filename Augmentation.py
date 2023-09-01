@@ -133,8 +133,11 @@ class ImageAugmentation:
         return image
 
 
-def apply_augmentation_techniques(image, image_augmentation, save_image=True):
-    methods = ["reflection", "scaling", "rotate", "gaussian_blur", "contrast", "shear"]
+def apply_augmentation_techniques(image, image_augmentation, save_image=True, training=False):
+    if training:
+        methods = ["reflection", "scaling", "contrast"]
+    else:
+        methods = ["reflection", "scaling", "rotate", "gaussian_blur", "contrast", "shear"]
     images = [image]
     for method in methods:
         function_call = getattr(image_augmentation, method)
@@ -158,7 +161,7 @@ def plot_all_pictures(image, image_path, image_augmentation):
     plt.show()
 
 
-def main_augmentation(path, mode):
+def main_augmentation(path, mode, training=False):
     # Removing useless \ inside path because of bad image name formatting
     path.replace("\\", "") if "\\" in path else path
     img_augmentation = ImageAugmentation()
@@ -183,7 +186,8 @@ def main_augmentation(path, mode):
                 f"Doing batch for directory {directory}," f"found {len(items)} pictures"
             )
             # Generating final destination path in augmented_directory
-            new_d_name_augmented = "/".join(directory.split("/")[1:])
+            # new_d_name_augmented = "/".join(directory.split("/")[1:])
+            new_d_name_augmented = directory.split("/")[-1]
             try:
                 os.makedirs(os.path.join("augmented_directory", new_d_name_augmented))
             except FileExistsError:
@@ -193,7 +197,7 @@ def main_augmentation(path, mode):
                 image_name = deepcopy(image)
                 image = img_augmentation.load_image(os.path.join(directory, image))
                 methods, images = apply_augmentation_techniques(
-                    image, img_augmentation, save_image=False
+                    image, img_augmentation, save_image=False, training=training
                 )
                 for i, img in enumerate(images):
                     img_augmentation.save_image(

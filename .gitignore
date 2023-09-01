@@ -133,3 +133,4 @@ images/
 augmented_directory/
 transformed_directory/
 model/
+training_data/
