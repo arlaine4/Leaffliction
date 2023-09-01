@@ -4,6 +4,7 @@ import cv2
 import pandas as pd
 import numpy as np
 import shutil
+import zipfile
 
 
 import warnings
@@ -165,6 +166,20 @@ def equalizes_dataset(path, q=0.75):
             batch_transform(path, "training_data", training=True)
 
 
+def zipdir(path_train, path_model):
+    ziph = zipfile.ZipFile('model.zip', 'w', zipfile.ZIP_DEFLATED)
+
+    for root, dirs, files in os.walk(path_train):
+        for file in files:
+            ziph.write(os.path.join(root, file))
+    for root, dirs, files in os.walk(path_model):
+        for file in files:
+            ziph.write(os.path.join(root, file))
+    ziph.close()
+
+    os.system("sha1sum model.zip > signature.txt")
+
+
 def main_training(path):
     equalizes_dataset(path)
 
@@ -186,6 +201,8 @@ def main_training(path):
     class_names = data[0].class_names
     df = pd.DataFrame(columns=class_names)
     df.to_csv("model/class_names.csv", index=False)
+
+    zipdir("training_data", "model")
 
 
 if __name__ == "__main__":
