@@ -12,12 +12,15 @@ from Transformation import transform_tmp, delete_tmp
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-i", "--image", default=False, help="Make prediction from an image path"
+        "-i", "--image", default=False,
+        help="Make prediction from an image path"
     )
     parser.add_argument(
-        "-b", "--batch", default=False, help="Make prediction from a directory path"
+        "-b", "--batch", default=False,
+        help="Make prediction from a directory path"
     )
-    parser.add_argument("-m", "--model", default="model/model.h5", help="Model path")
+    parser.add_argument("-m", "--model", default="model/model.h5",
+                        help="Model path")
     parser.add_argument(
         "-cn",
         "--class_names",
@@ -32,7 +35,7 @@ def verif_args(args):
     if not args.image and not args.batch:
         raise Exception("Please provide -b or -m to select prediction source")
     if args.image and args.batch:
-        raise Exception("You must choose between batch or image mode, not both")
+        raise Exception("Choose between batch or image mode, not both")
     if args.image:
         if not os.path.exists(args.image):
             raise Exception("Image path is invalid")
