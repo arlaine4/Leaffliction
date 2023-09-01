@@ -1,7 +1,9 @@
 import argparse
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from plantcv import plantcv as pcv
+from PIL import Image
 import os
+import numpy as np
 from tqdm import tqdm
 import sys
 
@@ -43,8 +45,6 @@ class Transformation:
     def original(self):
         img, _, _ = pcv.readimage(filename=self.options.image)
 
-        if self.options.debug == "plot":
-            pcv.plot_image(img)
         if self.options.debug == "print":
             pcv.print_image(
                 img,
@@ -64,8 +64,6 @@ class Transformation:
         )
         s_gblur = pcv.gaussian_blur(img=s_thresh, ksize=(5, 5), sigma_x=0, sigma_y=None)
 
-        if self.options.debug == "plot":
-            pcv.plot_image(s_gblur)
         if self.options.debug == "print":
             pcv.print_image(
                 s_gblur,
@@ -106,9 +104,7 @@ class Transformation:
         opened_ab = pcv.opening(gray_img=ab)
 
         xor_img = pcv.logical_xor(bin_img1=maskeda_thresh, bin_img2=maskedb_thresh)
-        xor_img_color = pcv.apply_mask(
-            img=self.img, mask=xor_img, mask_color="white"
-        )
+        xor_img_color = pcv.apply_mask(img=self.img, mask=xor_img, mask_color="white")
 
         ab_fill = pcv.fill(bin_img=ab, size=200)
 
@@ -116,9 +112,6 @@ class Transformation:
 
         masked2 = pcv.apply_mask(img=masked, mask=ab_fill, mask_color="white")
 
-        if self.options.debug == "plot":
-            pcv.plot_image(masked2)
-            pcv.plot_image(xor_img_color)
         if self.options.debug == "print":
             pcv.print_image(
                 masked2,
@@ -186,8 +179,6 @@ class Transformation:
             img=self.img, obj=obj, mask=mask, label="default"
         )
 
-        if self.options.debug == "plot":
-            pcv.plot_image(analysis_image)
         if self.options.debug == "print":
             pcv.print_image(
                 analysis_image,
@@ -231,8 +222,6 @@ class Transformation:
             label="default",
         )
 
-        if self.options.debug == "plot":
-            pcv.plot_image(color_histogram)
         if self.options.debug == "print":
             pcv.print_image(
                 color_histogram,
@@ -244,13 +233,15 @@ class Transformation:
 
 class options:
     def __init__(
-        self, path, debug="plot", writeimg=False, result="results.json", outdir="."
+        self, path, debug="print", writeimg=True, result="results.json", outdir="."
     ):
         self.image = path
         self.debug = debug
         self.writeimg = writeimg
         self.result = result
         self.outdir = outdir
+        if not os.path.isdir(self.outdir):
+            os.makedirs(self.outdir)
 
 
 def transform_image(options, training=False):
@@ -259,17 +250,13 @@ def transform_image(options, training=False):
     we are not feeding the model useless pictures
     """
     transformation = Transformation(options)
-    if training:
-        transformation.original()
-        transformation.gaussian_blur()
-        transformation.masked()
-    else:
-        transformation.original()
-        transformation.gaussian_blur()
-        transformation.masked()
-        transformation.roi()
-        transformation.analysis_objects()
-        transformation.pseudolandmarks()
+    transformation.original()
+    transformation.gaussian_blur()
+    transformation.masked()
+    transformation.roi()
+    transformation.analysis_objects()
+    transformation.pseudolandmarks()
+    if not training:
         transformation.color_histogram()
 
 
@@ -316,8 +303,8 @@ def batch_transform(src, dst, training=False):
         print("Doing batch for directory", name, "found", len(files), "pictures")
         for file in tqdm(files):
             if file.endswith(".JPG"):
-                #if already_done(os.path.join(dst, name, file)):
-                    #continue
+                # if already_done(os.path.join(dst, name, file)):
+                # continue
                 opt = options(
                     os.path.join(root, file),
                     debug="print",
@@ -326,6 +313,48 @@ def batch_transform(src, dst, training=False):
                 )
                 transform_image(opt, training)
         print()
+
+
+def get_image(name, training=False):
+    images = {}
+
+    images["original"] = Image.open(name + "_original.JPG")
+    images["gaussian_blur"] = Image.open(name + "_gaussian_blur.JPG").convert("RGB")
+    images["masked"] = Image.open(name + "_masked.JPG")
+    images["xor"] = Image.open(name + "_xor.JPG")
+    images["analysis_objects"] = Image.open(name + "_analysis_objects.JPG")
+    images["pseudolandmarks"] = Image.open(name + "_pseudolandmarks.JPG")
+    if not training:
+        images["color_histogram"] = Image.open(name + "_color_histogram.JPG")
+
+    return images
+
+
+def plot_images(options):
+    name = options.outdir + "/" + getlastname(options.image)
+    images = get_image(name)
+
+    # plot all images
+    fig, axs = plt.subplots(1, len(images), figsize=(12, 3))
+    fig.suptitle(f"Image: {options.image}")
+    plt.axis("off")
+    axs = axs.flatten()
+    for i, img, ax in zip(range(len(images)), images.values(), axs):
+        ax.imshow(img)
+        ax.set_axis_off()
+        ax.set_title(list(images.keys())[i])
+    plt.tight_layout()
+    plt.show(block=True)
+
+
+def transform_tmp(path):
+    opt = options(path, outdir="./tmp")
+    transform_image(opt, training=True)
+    return get_image(opt.outdir + "/" + getlastname(opt.image), training=True)
+
+
+def delete_tmp():
+    os.system("rm -rf ./tmp")
 
 
 if __name__ == "__main__":
@@ -343,7 +372,9 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and os.path.isfile(args.img):
         if not args.img.endswith(".JPG"):
             exit("Not a JPG file")
-        options = options(args.img)
+        options = options(args.img, outdir="./tmp")
         transform_image(options)
+        plot_images(options)
+        delete_tmp
     else:
         batch_transform(args.src, args.dst)

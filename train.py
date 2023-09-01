@@ -7,6 +7,7 @@ import shutil
 
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import sklearn
@@ -69,25 +70,26 @@ def prepare_dataset(dir_and_images):
 def generate_model(dataset):
     model = models.Sequential()
     model.add(layers.Rescaling(1.0 / 255))
-    model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+    # model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+    # model.add(layers.MaxPooling2D(2, 2))
+    model.add(layers.Conv2D(64, (3, 3), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
-    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.Conv2D(64, (3, 3), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
-    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-    model.add(layers.MaxPooling2D(2, 2))
-    model.add(layers.Conv2D(32, (1, 1), activation='relu'))
+    model.add(layers.Conv2D(32, (1, 1), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Flatten())
-    model.add(layers.Dense(256, activation='relu'))
-    model.add(layers.Dense(128, activation='relu'))
-    model.add(layers.Dense(64, activation='relu'))
-    model.add(layers.Dense(32, activation='relu'))
-    model.add(layers.Dense(len(dataset.class_names), activation='softmax'))
+    # model.add(layers.Dense(256, activation='relu'))
+    model.add(layers.Dense(512, activation="relu"))
+    model.add(layers.Dense(256, activation="relu"))
+    # model.add(layers.Dense(32, activation='relu'))
+    model.add(layers.Dense(len(dataset.class_names), activation="softmax"))
 
     model.compile(
-        optimizer='adam',
+        optimizer="adam",
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=['accuracy'])
+        metrics=["accuracy"],
+    )
 
     return model
 
@@ -130,13 +132,13 @@ def get_list_of_folders_to_augment(path):
             distrib[root] = len(os.listdir(root))
             mean += distrib[root]
     mean /= len(list(distrib.keys()))
-    print('Mean number of images over all directories is : ', mean)
+    print("Mean number of images over all directories is : ", mean)
     for key in list(distrib.keys()):
         if distrib[key] > mean:
             not_distrib[key] = distrib[key]
             del distrib[key]
-    print('Final distrib after clean : ', distrib)
-    print('Final not_distrib after clean : ', not_distrib)
+    print("Final distrib after clean : ", distrib)
+    print("Final not_distrib after clean : ", not_distrib)
     print()
     return distrib, not_distrib
 
@@ -148,8 +150,10 @@ def create_dir(path):
         shutil.rmtree(path)
         os.makedirs(path)
 
+
 def complete_with_augmented(path, missing):
     pass
+
 
 def equalizes_dataset(path, q=0.75):
     # compute the number of images of each dir
@@ -161,44 +165,51 @@ def equalizes_dataset(path, q=0.75):
     # compute the quantile
     quantile = np.quantile(list(dir_and_images.values()), q)
 
-    create_dir('training_data')
+    create_dir("training_data")
     for root, dirs, files in os.walk(path):
         if not dirs:
             if len(files) < quantile:
-                create_dir(os.path.join('training_data', root.split('/')[-1]))
+                create_dir(os.path.join("training_data", root.split("/")[-1]))
                 for file in files:
-                    shutil.copy(os.path.join(root, file), \
-                        os.path.join('training_data', root.split('/')[-1]))
+                    shutil.copy(
+                        os.path.join(root, file),
+                        os.path.join("training_data", root.split("/")[-1]),
+                    )
 
                 main_augmentation(root, "batch", training=True)
 
                 # complete with augmented_directory
                 missing = int(quantile) - len(files)
-                print('Missing : {} for {}'.format(missing, root))
+                print("Missing : {} for {}".format(missing, root))
 
-                for c_root, c_dirs, c_files in os.walk('augmented_directory' + '/' + root.split('/')[-1]):
+                for c_root, c_dirs, c_files in os.walk(
+                    "augmented_directory" + "/" + root.split("/")[-1]
+                ):
                     if not c_dirs:
                         c_files = os.listdir(c_root)
-                        c_files = [f for f in c_files if 'original' not in f]
+                        c_files = [f for f in c_files if "original" not in f]
                         for file in np.random.choice(c_files, missing, replace=False):
-                            shutil.copy(os.path.join(c_root, file), \
-                                os.path.join('training_data', c_root.split('/')[-1]))
+                            shutil.copy(
+                                os.path.join(c_root, file),
+                                os.path.join("training_data", c_root.split("/")[-1]),
+                            )
             else:
-                create_dir(os.path.join('training_data', root.split('/')[-1]))
+                create_dir(os.path.join("training_data", root.split("/")[-1]))
                 for file in np.random.choice(files, int(quantile), replace=False):
-                    shutil.copy(os.path.join(root, file), \
-                        os.path.join('training_data', root.split('/')[-1]))
+                    shutil.copy(
+                        os.path.join(root, file),
+                        os.path.join("training_data", root.split("/")[-1]),
+                    )
 
-            path = os.path.join('training_data', root.split('/')[-1])
-            batch_transform(path, 'training_data', training=True)
-
+            path = os.path.join("training_data", root.split("/")[-1])
+            batch_transform(path, "training_data", training=True)
 
 
 def main_training(path):
     equalizes_dataset(path)
 
     data = image_dataset_from_directory(
-        'training_data',
+        "training_data",
         validation_split=0.2,
         subset="both",
         seed=42,
@@ -206,8 +217,7 @@ def main_training(path):
     )
 
     model = generate_model(data[0])
-    model.fit(data[0], epochs=15, validation_data=data[1])
-
+    model.fit(data[0], epochs=8, validation_data=data[1])
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
     print("test_loss : ", test_loss)
