@@ -105,16 +105,12 @@ class Transformation:
         ab1 = pcv.logical_or(bin_img1=maskeda_thresh, bin_img2=maskedb_thresh)
         ab = pcv.logical_or(bin_img1=maskeda_thresh1, bin_img2=ab1)
 
-        # opened_ab = pcv.opening(gray_img=ab)
-
         xor_img = pcv.logical_xor(bin_img1=maskeda_thresh,
                                   bin_img2=maskedb_thresh)
         xor_img_color = pcv.apply_mask(img=self.img, mask=xor_img,
                                        mask_color="white")
 
         ab_fill = pcv.fill(bin_img=ab, size=200)
-
-        # closed_ab = pcv.closing(gray_img=ab_fill)
 
         masked2 = pcv.apply_mask(img=masked, mask=ab_fill, mask_color="white")
 

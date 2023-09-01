@@ -60,7 +60,6 @@ def prepare_dataset(dir_and_images):
             }
         )
     train_df = pd.concat([train_df, df])
-    # Add check to know if we should generate train_df or not
     train_df.to_csv("test.csv")
     return train_df
 
@@ -68,8 +67,6 @@ def prepare_dataset(dir_and_images):
 def generate_model(dataset):
     model = models.Sequential()
     model.add(layers.Rescaling(1.0 / 255))
-    # model.add(layers.Conv2D(128, (3, 3), activation='relu'))
-    # model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Conv2D(64, (3, 3), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Conv2D(64, (3, 3), activation="relu"))
@@ -77,10 +74,8 @@ def generate_model(dataset):
     model.add(layers.Conv2D(32, (1, 1), activation="relu"))
     model.add(layers.MaxPooling2D(2, 2))
     model.add(layers.Flatten())
-    # model.add(layers.Dense(256, activation='relu'))
     model.add(layers.Dense(512, activation="relu"))
     model.add(layers.Dense(256, activation="relu"))
-    # model.add(layers.Dense(32, activation='relu'))
     model.add(layers.Dense(len(dataset.class_names), activation="softmax"))
 
     model.compile(
@@ -102,14 +97,10 @@ def get_list_of_folders_to_augment(path):
             distrib[root] = len(os.listdir(root))
             mean += distrib[root]
     mean /= len(list(distrib.keys()))
-    print("Mean number of images over all directories is : ", mean)
     for key in list(distrib.keys()):
         if distrib[key] > mean:
             not_distrib[key] = distrib[key]
             del distrib[key]
-    print("Final distrib after clean : ", distrib)
-    print("Final not_distrib after clean : ", not_distrib)
-    print()
     return distrib, not_distrib
 
 
@@ -119,10 +110,6 @@ def create_dir(path):
     except FileExistsError:
         shutil.rmtree(path)
         os.makedirs(path)
-
-
-def complete_with_augmented(path, missing):
-    pass
 
 
 def equalizes_dataset(path, q=0.75):

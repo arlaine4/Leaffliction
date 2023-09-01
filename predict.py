@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import os
 import sys
+from random import shuffle
 
 from tensorflow.keras.models import load_model
 from Transformation import transform_tmp, delete_tmp
@@ -53,7 +54,6 @@ def verif_args(args):
 
 
 def predict_image(image, model):
-    # convert img to numpy array
     image = np.array(image)
     image_resize = cv2.resize(image, (128, 128), interpolation=cv2.INTER_AREA)
     return model.predict(np.expand_dims(image_resize, axis=0), verbose=0)
@@ -92,11 +92,15 @@ def make_prediction_on_image(image_path, model, class_names, plot=False):
 
 def make_prediction_on_batch(dir_path, model, class_names):
     images = os.listdir(dir_path)
+    # Shuffling images from batch directory so we can run multiple
+    # test on each batch and making predictions on different
+    # images every time
+    shuffle(images)
     predictions = 0
     valid = 0
     true_class = dir_path.split("/")[-1]
 
-    for image in images:
+    for i, image in enumerate(images):
         cp = make_prediction_on_image(
             os.path.join(dir_path, image), model, class_names, plot=False
         )
@@ -106,6 +110,8 @@ def make_prediction_on_batch(dir_path, model, class_names):
             print(f"Prediction for {image} : \033[32m{cp}\033[0m")
         else:
             print(f"Prediction for {image} : \033[31m{cp}\033[0m")
+        if i == 99:
+            break
 
     print(f"Got {int((valid / predictions) * 100)}% valid prediction")
     print("{}/{} valid predictions".format(valid, predictions))
