@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import argparse
 from tqdm import tqdm
 from copy import deepcopy
-from Distribution import load_images_from_directory
 
 SAVING_PATH = ""
 
@@ -166,7 +165,8 @@ def plot_all_pictures(image, image_path, image_augmentation):
     plt.show()
 
 
-def main_augmentation(path, mode, training=False, augmentation_folder_path='augmented_directory'):
+def main_augmentation(path, mode, training=False,
+                      augmentation_folder_path='augmented_directory'):
     # Removing useless \ inside path because of bad image name formatting
     path.replace('\\', '') if '\\' in path else path
     img_augmentation = ImageAugmentation()
@@ -176,16 +176,19 @@ def main_augmentation(path, mode, training=False, augmentation_folder_path='augm
         img = img_augmentation.load_image(path)
         plot_all_pictures(img, path, img_augmentation)
     else:
-        # Iterating from base directory, getting path for every 'final sub directory'
+        # Iterating from base directory,
+        # getting path for every 'final sub directory'
         final_dirs = {}
         for root, dirs, files in os.walk(path):
             if not dirs:
                 final_dirs[root] = len(files)
-        # List of folder keys to be augmented because the image count is below the mean
+        # List of folder keys to be augmented because the image
+        # count is below the mean
         to_augment = []
         # The folder with the lowest number of pics will be the goal.
-        # e.g : 275 images, * 6 because we have 6 image augmentation techniques available,
-        # so the augmentation goal towards every folder will be 1650 images.
+        # e.g : 275 images, * 6 because we have 6 image augmentation
+        # techniques available, so the augmentation goal towards
+        # every folder will be 1650 images.
         to_augment_goal = min(final_dirs.values())
         to_augment_goal *= 6
         for key, nb_img in final_dirs.items():
@@ -197,20 +200,23 @@ def main_augmentation(path, mode, training=False, augmentation_folder_path='augm
         for folder in to_augment:
             generation_goal = to_augment_goal - final_dirs[folder]
             print(f'Starting augmentation for folder {folder}')
-            print(f'Starting from {final_dirs[folder]} images towards {to_augment_goal}')
+            print(f'Starting from {final_dirs[folder]}'
+                  f'images towards {to_augment_goal}')
             print(f'Will generate {generation_goal} images')
             augmented_dir_name = folder.split('/')[-1]
             try:
-                os.makedirs(os.path.join(augmentation_folder_path, augmented_dir_name))
-                # os.makedirs(os.path.join(augmentation_folder_path, folder.split('/')[-1]))
+                os.makedirs(os.path.join(augmentation_folder_path,
+                                         augmented_dir_name))
             except FileExistsError:
                 pass
 
             # Listing images in the directory that needs augmentation
             images = os.listdir(folder)
             for img in images:
-                cv2.imwrite(os.path.join(augmentation_folder_path, augmented_dir_name, img),
-                            img_augmentation.load_image(os.path.join(folder, img)))
+                cv2.imwrite(os.path.join(augmentation_folder_path,
+                                         augmented_dir_name, img),
+                            img_augmentation.load_image(os.path.join(folder,
+                                                                     img)))
             # Counting after each image augmentation until the count
             # reaches the to_augment_goal
             count = 0
@@ -219,15 +225,16 @@ def main_augmentation(path, mode, training=False, augmentation_folder_path='augm
                 if count == generation_goal:
                     break
                 image_name = deepcopy(image)
-                # print(f'Loading image {image_name} from {os.path.join(folder, image_name)}')
-                image = img_augmentation.load_image(os.path.join(folder, image_name))
+                image = img_augmentation.load_image(os.path.join(folder,
+                                                                 image_name))
                 # Generating the augmented images matrix
                 methods, imgs = apply_augmentation_techniques(
                     image, img_augmentation, save_image=False,
                     training=training
                 )
                 # Iterating over all the augmented images generated.
-                # Saving the augmented images until we reach the to_augment_goal
+                # Saving the augmented images until we reach the
+                # to_augment_goal
                 for i, img in enumerate(imgs):
                     # print(count, to_augment_goal)
                     count += 1
@@ -236,59 +243,10 @@ def main_augmentation(path, mode, training=False, augmentation_folder_path='augm
                     img_augmentation.save_image(
                         img,
                         methods[i],
-                        os.path.join(augmentation_folder_path, augmented_dir_name),
+                        os.path.join(augmentation_folder_path,
+                                     augmented_dir_name),
                         image_name
                     )
-
-    """# Removing useless \ inside path because of bad image name formatting
-    path.replace("\\", "") if "\\" in path else path
-    img_augmentation = ImageAugmentation()
-    # Processing single image path
-    if mode == "image":
-        global SAVING_PATH
-        SAVING_PATH = path
-        image = img_augmentation.load_image(path)
-        plot_all_pictures(image, path, img_augmentation)
-    # Processing folder path
-    else:
-        # Dict of folder paths and their corresponding files
-        final_dirs = {}
-        # Extracting only 'final' dirs, ones that only have files inside and not
-        # more sub folders
-        for root, dirs, files in os.walk(path):
-            if not dirs:
-                final_dirs[root] = load_images_from_directory(root)
-        # Running augmentation loop for each of the final folders found
-        for directory, items in final_dirs.items():
-            print(
-                f"Doing batch for directory {directory},"
-                f"found {len(items)} pictures"
-            )
-            # Generating final destination path in augmented_directory
-            # new_d_name_augmented = "/".join(directory.split("/")[1:])
-            new_d_name_augmented = directory.split("/")[-1]
-            try:
-                os.makedirs(os.path.join("augmented_directory",
-                            new_d_name_augmented))
-            except FileExistsError:
-                pass
-            # Running image augmentation for each image found inside the folder
-            for image in tqdm(items):
-                image_name = deepcopy(image)
-                image = img_augmentation.load_image(os.path.join(directory,
-                                                                 image))
-                methods, images = apply_augmentation_techniques(
-                    image, img_augmentation, save_image=False,
-                    training=training
-                )
-                for i, img in enumerate(images):
-                    img_augmentation.save_image(
-                        img,
-                        methods[i],
-                        os.path.join("augmented_directory",
-                                     new_d_name_augmented),
-                        image_name,
-                    )"""
 
 
 if __name__ == "__main__":
