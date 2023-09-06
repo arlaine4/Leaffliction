@@ -131,7 +131,9 @@ dmypy.json
 # dataset
 images/
 augmented_directory/
+augmented_directory_test/
 transformed_directory/
 model/
 training_data/
 model.zip
+tmp/

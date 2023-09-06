@@ -4,6 +4,7 @@ import imutils
 import cv2
 import matplotlib.pyplot as plt
 import argparse
+import shutil
 from tqdm import tqdm
 from copy import deepcopy
 
@@ -201,7 +202,7 @@ def main_augmentation(path, mode, training=False,
             generation_goal = to_augment_goal - final_dirs[folder]
             print(f'Starting augmentation for folder {folder}')
             print(f'Starting from {final_dirs[folder]}'
-                  f'images towards {to_augment_goal}')
+                  f' images towards {to_augment_goal}')
             print(f'Will generate {generation_goal} images')
             augmented_dir_name = folder.split('/')[-1]
             try:
@@ -221,6 +222,9 @@ def main_augmentation(path, mode, training=False,
             # reaches the to_augment_goal
             count = 0
 
+            # compute number of aumentations needed by images
+            needed_by_images = int(generation_goal / len(images)) + 1
+
             for image in tqdm(images):
                 if count == generation_goal:
                     break
@@ -232,11 +236,19 @@ def main_augmentation(path, mode, training=False,
                     image, img_augmentation, save_image=False,
                     training=training
                 )
+
+                # remove original image from methods and imgs
+                methods = methods[1:]
+                imgs = imgs[1:]
+
+                methods_random = np.random.choice(methods, needed_by_images, replace=False)
+
                 # Iterating over all the augmented images generated.
                 # Saving the augmented images until we reach the
                 # to_augment_goal
                 for i, img in enumerate(imgs):
-                    # print(count, to_augment_goal)
+                    if methods[i] not in methods_random:
+                        continue
                     count += 1
                     if count == generation_goal:
                         break
@@ -248,12 +260,46 @@ def main_augmentation(path, mode, training=False,
                         image_name
                     )
 
+            if count != generation_goal:
+                raise ValueError("Impossible to generate enough images")
+
+
+
+def split_for_test_set(split):
+    """
+    Splitting the augmented images into a test set.
+    in the dir augmented_directory_test
+    """
+    print("Splitting {} of the augmented images for test set".format(split))
+    augmented_dir = "augmented_directory"
+    test_dir = "augmented_directory_test"
+    if not os.path.isdir(test_dir):
+        os.makedirs(test_dir)
+    for root, dirs, files in os.walk(augmented_dir):
+        if not dirs:
+            test_dir_name = root.split('/')[-1]
+            try:
+                os.makedirs(os.path.join(test_dir, test_dir_name))
+            except FileExistsError:
+                pass
+            images = os.listdir(root)
+            np.random.shuffle(images)
+            split_index = int(len(images) * split)
+            for image in images[:split_index]:
+                # copy in augmented_directory_test and remove from augmented_directory
+                shutil.copy(os.path.join(root, image),
+                            os.path.join(test_dir, test_dir_name, image))
+                os.remove(os.path.join(root, image))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "path", help="Path to the image or folder containing images to augment"
     )
+    parser.add_argument("-s", "--split",
+                        help="Create a test split (default 0.2)",
+                        type=float, default=0.2)
     args = parser.parse_args()
 
     default_path = args.path
@@ -265,4 +311,11 @@ if __name__ == "__main__":
             raise FileNotFoundError("Invalid file extension")
         main_augmentation(default_path, "image")
     elif os.path.isdir(default_path):
+        # if augmented_diorectory alredy exit rm
+        if os.path.isdir("augmented_directory"):
+            shutil.rmtree("augmented_directory")
         main_augmentation(default_path, "batch")
+        if args.split > 0:
+            if os.path.isdir("augmented_directory_val"):
+                shutil.rmtree("augmented_directory_val")
+            split_for_test_set(args.split)

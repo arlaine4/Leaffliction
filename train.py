@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import shutil
 import zipfile
+import argparse
 
 
 import warnings
@@ -14,7 +15,7 @@ from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
 
 from Augmentation import main_augmentation
-from Transformation import batch_transform
+#from Transformation import batch_transform
 
 warnings.filterwarnings("ignore")
 TARGETS_DICT = {}
@@ -113,59 +114,6 @@ def create_dir(path):
         os.makedirs(path)
 
 
-def equalizes_dataset(path, q=0.75):
-    # compute the number of images of each dir
-    dir_and_images = {}
-    for root, dirs, files in os.walk(path):
-        if not dirs:
-            dir_and_images[root] = len(files)
-
-    # compute the quantile
-    quantile = np.quantile(list(dir_and_images.values()), q)
-
-    create_dir("training_data")
-    for root, dirs, files in os.walk(path):
-        if not dirs:
-            if len(files) < quantile:
-                create_dir(os.path.join("training_data", root.split("/")[-1]))
-                for file in files:
-                    shutil.copy(
-                        os.path.join(root, file),
-                        os.path.join("training_data", root.split("/")[-1]),
-                    )
-
-                main_augmentation(root, "batch", training=True)
-
-                # complete with augmented_directory
-                missing = int(quantile) - len(files)
-                print("Missing : {} for {}".format(missing, root))
-
-                for c_root, c_dirs, c_files in os.walk(
-                    "augmented_directory" + "/" + root.split("/")[-1]
-                ):
-                    if not c_dirs:
-                        c_files = os.listdir(c_root)
-                        c_files = [f for f in c_files if "original" not in f]
-                        for file in np.random.choice(c_files, missing,
-                                                     replace=False):
-                            shutil.copy(
-                                os.path.join(c_root, file),
-                                os.path.join("training_data",
-                                             c_root.split("/")[-1]),
-                            )
-            else:
-                create_dir(os.path.join("training_data", root.split("/")[-1]))
-                for file in np.random.choice(files, int(quantile),
-                                             replace=False):
-                    shutil.copy(
-                        os.path.join(root, file),
-                        os.path.join("training_data", root.split("/")[-1]),
-                    )
-
-            path = os.path.join("training_data", root.split("/")[-1])
-            batch_transform(path, "training_data", training=True)
-
-
 def zipdir(path_train, path_model):
     ziph = zipfile.ZipFile('model.zip', 'w', zipfile.ZIP_DEFLATED)
 
@@ -180,18 +128,44 @@ def zipdir(path_train, path_model):
     os.system("sha1sum model.zip > signature.txt")
 
 
-def main_training(path):
-    equalizes_dataset(path)
+def get_data(train_path, validation_path):
+    if validation_path:
+        print("For training: ")
+        data_train = image_dataset_from_directory(
+            train_path,
+            seed=42,
+            image_size=(128, 128),
+        )
+        print("For validation: ")
+        data_val = image_dataset_from_directory(
+            validation_path,
+            seed=42,
+            image_size=(128, 128),
+        )
 
-    data = image_dataset_from_directory(
-        "training_data",
-        validation_split=0.2,
-        subset="both",
-        seed=42,
-        image_size=(128, 128),
-    )
+        if data_train.class_names != data_val.class_names:
+            raise Exception("Class names are not the same between train and validation data")
 
+        return (data_train, data_val)
+    else:
+        return image_dataset_from_directory(
+            train_path,
+            validation_split=0.2,
+            subset="both",
+            seed=42,
+            image_size=(128, 128),
+        )
+
+def main_training(train_path, validation_path=None):
+    print("Opening dataset...")
+    data = get_data(train_path, validation_path)
+    print()
+
+    print("Generating model...")
     model = generate_model(data[0])
+    print()
+
+    print("Training model...")
     model.fit(data[0], epochs=8, validation_data=data[1])
 
     test_loss, test_acc = model.evaluate(data[1], verbose=2)
@@ -206,9 +180,19 @@ def main_training(path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise Exception("Missing path argument")
-    path = sys.argv[1]
-    if not os.path.isdir(path):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "batch_train", help="Path to the folder containing the training data"
+    )
+    parser.add_argument(
+        "--batch_val",
+        help="Path to the folder containing the validation data",
+        default=None,
+    )
+    args = parser.parse_args()
+
+    if not os.path.isdir(args.batch_train):
         raise Exception("Provided path doesn't exist or is not a folder")
-    main_training(path)
+    if args.batch_val and not os.path.isdir(args.batch_val):
+        raise Exception("Provided path doesn't exist or is not a folder")
+    main_training(args.batch_train, args.batch_val)
