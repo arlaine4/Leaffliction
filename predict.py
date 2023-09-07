@@ -98,6 +98,8 @@ def make_prediction_on_batch(dir_path, model, class_names):
     shuffle(images)
     predictions = 0
     valid = 0
+    if dir_path[-1] == '/':
+        dir_path = dir_path[:-1]
     true_class = dir_path.split("/")[-1]
 
     for i, image in enumerate(images):
