@@ -298,8 +298,8 @@ if __name__ == "__main__":
         "path", help="Path to the image or folder containing images to augment"
     )
     parser.add_argument("-s", "--split",
-                        help="Create a test split (default 0.2)",
-                        type=float, default=0.2)
+                        help="Create a test split (default 0.1)",
+                        type=float, default=0.1)
     args = parser.parse_args()
 
     default_path = args.path

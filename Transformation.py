@@ -379,6 +379,10 @@ if __name__ == "__main__":
         "-dst", type=str,
         help="Path to the destination dir. (needed if src is a dir)"
     )
+    parser.add_argument(
+        "-t", "--training", action="store_true",
+        help="Use this flag when calling batch_transform before training (default: False)"
+    )
     args = parser.parse_args()
 
     if len(sys.argv) == 2 and os.path.isfile(args.img):
@@ -389,4 +393,4 @@ if __name__ == "__main__":
         plot_images(options)
         delete_tmp
     else:
-        batch_transform(args.src, args.dst)
+        batch_transform(args.src, args.dst, args.training)
