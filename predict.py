@@ -59,14 +59,13 @@ def predict_image(image, model):
     return model.predict(np.expand_dims(image_resize, axis=0), verbose=0)
 
 
-def plot_prediction(image, image_masked, class_name_prediction):
-    plt.suptitle("Class predicted : {}".format(class_name_prediction))
-    plt.subplot(1, 2, 1)
-    plt.imshow(image)
-    plt.axis("off")
-    plt.subplot(1, 2, 2)
-    plt.imshow(image_masked)
-    plt.axis("off")
+def plot_prediction(image, image_masked, class_name_prediction, img_path):
+    fig, (ax0, ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, figsize=(12, 8))
+    ax0.imshow(image)
+    ax0.set_title(f"Image : {img_path}", fontsize=10)
+    ax1.imshow(image_masked)
+    ax1.set_title("Masked image", fontsize=10)
+    fig.suptitle(f"Class predicted : {class_name_prediction}")
     plt.show()
 
 
@@ -85,6 +84,7 @@ def make_prediction_on_image(image_path, model, class_names, plot=False):
             images_transform["original"],
             images_transform["masked"],
             class_name_prediction,
+            image_path
         )
 
     return class_name_prediction
