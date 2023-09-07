@@ -241,7 +241,9 @@ def main_augmentation(path, mode, training=False,
                 methods = methods[1:]
                 imgs = imgs[1:]
 
-                methods_random = np.random.choice(methods, needed_by_images, replace=False)
+                methods_random = np.random.choice(methods,
+                                                  needed_by_images,
+                                                  replace=False)
 
                 # Iterating over all the augmented images generated.
                 # Saving the augmented images until we reach the
@@ -262,7 +264,6 @@ def main_augmentation(path, mode, training=False,
 
             if count != generation_goal:
                 raise ValueError("Impossible to generate enough images")
-
 
 
 def split_for_test_set(split):
@@ -286,7 +287,8 @@ def split_for_test_set(split):
             np.random.shuffle(images)
             split_index = int(len(images) * split)
             for image in images[:split_index]:
-                # copy in augmented_directory_test and remove from augmented_directory
+                # copy in augmented_directory_test and remove from
+                # augmented_directory
                 shutil.copy(os.path.join(root, image),
                             os.path.join(test_dir, test_dir_name, image))
                 os.remove(os.path.join(root, image))

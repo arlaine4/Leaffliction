@@ -60,7 +60,8 @@ def predict_image(image, model):
 
 
 def plot_prediction(image, image_masked, class_name_prediction, img_path):
-    fig, (ax0, ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, figsize=(12, 8))
+    fig, (ax0, ax1) = plt.subplots(nrows=1, ncols=2,
+                                   sharex=True, figsize=(12, 8))
     ax0.imshow(image)
     ax0.set_title(f"Image : {img_path}", fontsize=10)
     ax1.imshow(image_masked)

@@ -1,5 +1,4 @@
 import os
-import sys
 import cv2
 import pandas as pd
 import numpy as np
@@ -13,9 +12,6 @@ import warnings
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.utils import image_dataset_from_directory
-
-from Augmentation import main_augmentation
-#from Transformation import batch_transform
 
 warnings.filterwarnings("ignore")
 TARGETS_DICT = {}
@@ -144,7 +140,8 @@ def get_data(train_path, validation_path):
         )
 
         if data_train.class_names != data_val.class_names:
-            raise Exception("Class names are not the same between train and validation data")
+            raise Exception("Class names are not the same between"
+                            "train and validation data")
 
         return (data_train, data_val)
     else:
@@ -155,6 +152,7 @@ def get_data(train_path, validation_path):
             seed=42,
             image_size=(128, 128),
         )
+
 
 def main_training(train_path, validation_path=None):
     print("Opening dataset...")
