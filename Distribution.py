@@ -58,6 +58,8 @@ def plot_image_distribution(base_directory_name, images_with_directory_names):
     # Bar chart
     plt.subplot(1, 2, 2)
     plt.bar(labels, total_images, color=colors)
+    plt.xticks(rotation=20, ha="right")
+
     plt.grid(True)
     plt.title("Bar chart")
 
